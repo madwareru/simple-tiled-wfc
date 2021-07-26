@@ -26,10 +26,9 @@ pub trait WfcEntropyHeuristic<TBitSet>
         modules: &[WfcModule<TBitSet>],
         available_indices: &[usize]
     ) -> usize;
-
-    fn new() -> Self;
 }
 
+#[derive(Default)]
 pub struct DefaultEntropyHeuristic {
     _noop: u8
 }
@@ -48,7 +47,6 @@ impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
         let mut rng = thread_rng();
         rng.gen_range(0, available_indices.len())
     }
-    fn new() -> Self { Self { _noop: Default::default() } }
 }
 
 pub trait WfcEntropyChoiceHeuristic<TBitSet>
@@ -66,10 +64,9 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
         modules: &[WfcModule<TBitSet>],
         slot_bits: &TBitSet,
     ) -> usize;
-
-    fn new() -> Self;
 }
 
+#[derive(Default)]
 pub struct DefaultEntropyChoiceHeuristic {
     _noop: u8
 }
@@ -93,8 +90,6 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
         let mut iterator = BitsIterator::new(slot_bits);
         iterator.nth(random_bit_id).unwrap()
     }
-
-    fn new() -> Self { Self { _noop: Default::default() } }
 }
 
 pub struct WfcModule<TBitSet>
@@ -193,6 +188,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
+        entropy_heuristic: TEntropyHeuristic,
+        entropy_choice_heuristic: TEntropyChoiceHeuristic
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
@@ -210,8 +207,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             south_memoizer: HashMap::new(),
             east_memoizer: HashMap::new(),
             west_memoizer: HashMap::new(),
-            entropy_heuristic: TEntropyHeuristic::new(),
-            entropy_choice_heuristic: TEntropyChoiceHeuristic::new(),
+            entropy_heuristic,
+            entropy_choice_heuristic,
             buckets
         }
     }
@@ -220,6 +217,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
+        entropy_heuristic: TEntropyHeuristic,
+        entropy_choice_heuristic: TEntropyChoiceHeuristic,
         collapse: &[usize]
     ) -> Self {
         assert_eq!(collapse.len(), width * height);
@@ -241,8 +240,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             south_memoizer: HashMap::new(),
             east_memoizer: HashMap::new(),
             west_memoizer: HashMap::new(),
-            entropy_heuristic: TEntropyHeuristic::new(),
-            entropy_choice_heuristic: TEntropyChoiceHeuristic::new(),
+            entropy_heuristic,
+            entropy_choice_heuristic,
             buckets
         }
     }
