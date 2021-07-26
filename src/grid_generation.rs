@@ -171,24 +171,19 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         for &id in first_neighbour_tier.iter() {
             self.propagate_backward(idx, id);
         }
-        for &id in first_neighbour_tier.iter() {
-            self.propagate_backward(idx, id);
-        }
 
         let result = self.collapse(10);
         if result.is_ok() { return result }
 
         let mut second_neighbour_tier = Vec::new();
         for &prev_id in first_neighbour_tier.iter() {
-            self.propagate_neighbour_tier(idx, &mut second_neighbour_tier);
+            second_neighbour_tier.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut second_neighbour_tier);
         }
         for &id in second_neighbour_tier.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
-        }
-        for &id in second_neighbour_tier.iter() {
-            self.propagate_backward(idx, id);
         }
         for &id in second_neighbour_tier.iter() {
             self.propagate_backward(idx, id);
@@ -199,15 +194,13 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
 
         let mut third_neighbour_tier = Vec::new();
         for &prev_id in second_neighbour_tier.iter() {
-            self.propagate_neighbour_tier(idx, &mut third_neighbour_tier);
+            third_neighbour_tier.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut third_neighbour_tier);
         }
         for &id in third_neighbour_tier.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
-        }
-        for &id in third_neighbour_tier.iter() {
-            self.propagate_backward(idx, id);
         }
         for &id in third_neighbour_tier.iter() {
             self.propagate_backward(idx, id);
