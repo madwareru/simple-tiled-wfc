@@ -5,6 +5,7 @@ use {
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
 };
 use rand::Rng;
+use std::alloc::Global;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -258,6 +259,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(idx, value);
 
         let mut tier = Vec::new();
+        let mut tier_probabilities: Vec<TBitSet> = Vec::new();
         self.propagate_neighbour_tier(idx, &mut tier);
         for &id in tier.iter() {
             if id != idx {
@@ -265,7 +267,14 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
         }
         for &id in tier.iter() {
-            self.propagate_backward(idx, id);
+            if id != idx {
+                self.propagate_backward(id, &mut tier_probabilities);
+            } else {
+                tier_probabilities.push(value)
+            }
+        }
+        for &(id, prob) in tier.iter().zip(tier_probabilities.iter()) {
+            self.set(id, prob);
         }
 
         let result = self.collapse(10);
@@ -273,6 +282,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         for _ in 0..30 {
             let mut next_tier = Vec::new();
+            let mut tier_probabilities: Vec<TBitSet> = Vec::new();
             for &prev_id in tier.iter() {
                 next_tier.push(prev_id);
                 self.propagate_neighbour_tier(prev_id, &mut next_tier);
@@ -283,7 +293,14 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 }
             }
             for &id in next_tier.iter() {
-                self.propagate_backward(idx, id);
+                if id != idx {
+                    self.propagate_backward(id, &mut tier_probabilities);
+                } else {
+                    tier_probabilities.push(value)
+                }
+            }
+            for &(id, prob) in next_tier.iter().zip(tier_probabilities.iter()) {
+                self.set(id, prob);
             }
             tier = next_tier;
 
@@ -294,11 +311,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         Err(WfcError::TooManyContradictions)
     }
 
-    fn propagate_backward(&mut self, id_to_ignore: usize, id: usize) {
-        if id == id_to_ignore {
-            return;
-        }
-
+    fn propagate_backward(&mut self, id: usize, probs: &mut Vec<TBitSet>) {
         let mut probability_set = make_initial_probabilities(self.modules);
         let nbr_ids = self.get_neighbours(id);
         if let Some(west_neighbour) = nbr_ids.west {
@@ -317,7 +330,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             let south_neighbour = self.grid[south_neighbour];
             probability_set = probability_set.intersection(self.north_neighbours(&south_neighbour));
         }
-        self.set(id, probability_set);
+        probs.push(probability_set);
     }
 
     fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>) {
