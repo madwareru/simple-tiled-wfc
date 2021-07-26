@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate genawaiter;
-
 use bitsetium::BitSearch;
 
 pub mod errors;
