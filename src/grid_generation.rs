@@ -121,6 +121,158 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         }
     }
 
+    pub fn from_existing_collapse(
+        modules: &'a [WfcModule<TBitSet>],
+        width: usize,
+        height: usize,
+        collapse: &[usize]
+    ) -> Self<> {
+        assert_eq!(collapse.len(), width * height);
+
+        let mut grid: Vec<TBitSet> = Vec::new();
+        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
+        for idx in 0..(width * height) {
+            let mut initial = TBitSet::empty();
+            initial.set(collapse[idx]);
+            buckets[1].push(idx);
+            grid.push(initial);
+        }
+        Self {
+            modules,
+            width,
+            height,
+            grid,
+            north_memoizer: HashMap::new(),
+            south_memoizer: HashMap::new(),
+            east_memoizer: HashMap::new(),
+            west_memoizer: HashMap::new(),
+            buckets
+        }
+    }
+
+    pub fn local_collapse(
+        &mut self,
+        row: usize,
+        column: usize,
+        module: usize
+    ) -> Result<Vec<usize>, WfcError> {
+        let idx = row * self.width + column;
+        let mut value = TBitSet::empty();
+        value.set(module);
+
+        let mut first_neighbour_tier = Vec::new();
+        self.propagate_neighbour_tier(idx, &mut first_neighbour_tier);
+        for &id in first_neighbour_tier.iter() {
+            self.propagate_backward(id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut second_neighbour_tier = Vec::new();
+        for &prev_id in first_neighbour_tier.iter() {
+            self.propagate_neighbour_tier(idx, &mut second_neighbour_tier);
+        }
+        for &id in second_neighbour_tier.iter() {
+            self.propagate_backward(id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut third_neighbour_tier = Vec::new();
+        for &prev_id in second_neighbour_tier.iter() {
+            self.propagate_neighbour_tier(idx, &mut third_neighbour_tier);
+        }
+        for &id in third_neighbour_tier.iter() {
+            self.propagate_backward(id);
+        }
+
+        self.collapse(10)
+    }
+
+    fn propagate_backward(&mut self, id: usize) {
+        let mut probability_set = make_initial_probabilities(self.modules);
+        let nbr_ids = self.get_neighbours(id);
+        if let Some(west_neighbour) = nbr_ids.west {
+            let west_neighbour = self.grid[west_neighbour];
+            probability_set = probability_set.intersection(self.east_neighbours(&west_neighbour));
+        }
+        if let Some(east_neighbour) = nbr_ids.east {
+            let east_neighbour = self.grid[east_neighbour];
+            probability_set = probability_set.intersection(self.west_neighbours(&east_neighbour));
+        }
+        if let Some(north_neighbour) = nbr_ids.north {
+            let north_neighbour = self.grid[north_neighbour];
+            probability_set = probability_set.intersection(self.south_neighbours(&north_neighbour));
+        }
+        if let Some(south_neighbour) = nbr_ids.south {
+            let south_neighbour = self.grid[south_neighbour];
+            probability_set = probability_set.intersection(self.north_neighbours(&south_neighbour));
+        }
+        self.set(id, probability_set);
+    }
+
+    fn propagate_neighbour_tier(&mut self, idx: usize, first_neighbour_tier: &mut Vec<usize>) {
+        let neighbours = self.get_neighbours(idx);
+        if let Some(west_neighbour) = neighbours.west {
+            first_neighbour_tier.push(west_neighbour);
+            let nbrs = self.get_neighbours(west_neighbour);
+            if let Some(nbr) = nbrs.north {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+            if let Some(nbr) = nbrs.south {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+        }
+        if let Some(east_neighbour) = neighbours.east {
+            first_neighbour_tier.push(east_neighbour);
+            let nbrs = self.get_neighbours(east_neighbour);
+            if let Some(nbr) = nbrs.north {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+            if let Some(nbr) = nbrs.south {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+        }
+        if let Some(north_neighbour) = neighbours.north {
+            first_neighbour_tier.push(north_neighbour);
+            let nbrs = self.get_neighbours(north_neighbour);
+            if let Some(nbr) = nbrs.east {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+            if let Some(nbr) = nbrs.west {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+        }
+        if let Some(south_neighbour) = neighbours.south {
+            first_neighbour_tier.push(south_neighbour);
+            let nbrs = self.get_neighbours(south_neighbour);
+            if let Some(nbr) = nbrs.east {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+            if let Some(nbr) = nbrs.west {
+                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                    first_neighbour_tier.push(nbr);
+                }
+            }
+        }
+    }
+
     pub fn reset(&mut self) {
         self.north_memoizer.clear();
         self.south_memoizer.clear();
