@@ -161,65 +161,150 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         value.set(module);
         self.set(idx, value);
 
-        let mut first_neighbour_tier = Vec::new();
-        self.propagate_neighbour_tier(idx, &mut first_neighbour_tier);
-        for &id in first_neighbour_tier.iter() {
+        let mut tier_1 = Vec::new();
+        self.propagate_neighbour_tier(idx, &mut tier_1);
+        for &id in tier_1.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for &id in first_neighbour_tier.iter() {
+        for &id in tier_1.iter() {
             self.propagate_backward(idx, id);
         }
 
         let result = self.collapse(10);
         if result.is_ok() { return result }
 
-        let mut second_neighbour_tier = Vec::new();
-        for &prev_id in first_neighbour_tier.iter() {
-            second_neighbour_tier.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut second_neighbour_tier);
+        let mut tier_2 = Vec::new();
+        for &prev_id in tier_1.iter() {
+            tier_2.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_2);
         }
-        for &id in second_neighbour_tier.iter() {
+        for &id in tier_2.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for &id in second_neighbour_tier.iter() {
+        for &id in tier_2.iter() {
             self.propagate_backward(idx, id);
         }
 
         let result = self.collapse(10);
         if result.is_ok() { return result }
 
-        let mut third_neighbour_tier = Vec::new();
-        for &prev_id in second_neighbour_tier.iter() {
-            third_neighbour_tier.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut third_neighbour_tier);
+        let mut tier_3 = Vec::new();
+        for &prev_id in tier_2.iter() {
+            tier_3.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_3);
         }
-        for &id in third_neighbour_tier.iter() {
+        for &id in tier_3.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for &id in third_neighbour_tier.iter() {
+        for &id in tier_3.iter() {
             self.propagate_backward(idx, id);
         }
 
         let result = self.collapse(10);
         if result.is_ok() { return result }
 
-        let mut fourth_neighbour_tier = Vec::new();
-        for &prev_id in third_neighbour_tier.iter() {
-            fourth_neighbour_tier.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut fourth_neighbour_tier);
+        let mut tier_4 = Vec::new();
+        for &prev_id in tier_3.iter() {
+            tier_4.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_4);
         }
-        for &id in fourth_neighbour_tier.iter() {
+        for &id in tier_4.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for &id in fourth_neighbour_tier.iter() {
+        for &id in tier_4.iter() {
+            self.propagate_backward(idx, id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut tier_5 = Vec::new();
+        for &prev_id in tier_4.iter() {
+            tier_5.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_5);
+        }
+        for &id in tier_5.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in tier_5.iter() {
+            self.propagate_backward(idx, id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut tier_6 = Vec::new();
+        for &prev_id in tier_5.iter() {
+            tier_6.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_6);
+        }
+        for &id in tier_6.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in tier_6.iter() {
+            self.propagate_backward(idx, id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut tier_7 = Vec::new();
+        for &prev_id in tier_6.iter() {
+            tier_7.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_7);
+        }
+        for &id in tier_7.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in tier_7.iter() {
+            self.propagate_backward(idx, id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut tier_8 = Vec::new();
+        for &prev_id in tier_7.iter() {
+            tier_8.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_8);
+        }
+        for &id in tier_8.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in tier_8.iter() {
+            self.propagate_backward(idx, id);
+        }
+
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut tier_9 = Vec::new();
+        for &prev_id in tier_8.iter() {
+            tier_9.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut tier_9);
+        }
+        for &id in tier_9.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in tier_9.iter() {
             self.propagate_backward(idx, id);
         }
 
