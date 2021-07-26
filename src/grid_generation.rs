@@ -1,10 +1,22 @@
 use {
-    rand::{thread_rng},
-    std::{hash::Hash, collections::{HashMap, VecDeque}},
+    rand::{thread_rng, Rng},
+    std::{
+        hash::Hash,
+        collections::{HashMap, VecDeque},
+        sync::mpsc::{SyncSender, Receiver, sync_channel}
+    },
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
+    genawaiter::{sync::{Co}, sync_producer},
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
 };
-use rand::Rng;
+use genawaiter::sync::Gen;
+use genawaiter::GeneratorState;
+
+pub enum AsyncState {
+    Yield((usize, usize)),
+    Contradiction,
+    Complete(Result<Vec<usize>, WfcError>)
+}
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -411,11 +423,18 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.propagate(&mut propagation_queue);
     }
 
-    pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
+    pub async fn collapse_async(
+        &mut self,
+        sender: SyncSender<AsyncState>,
+        max_contradictions: i32,
+        co: &Co<()>
+    ) {
         let mut contradictions_allowed = max_contradictions;
         let old_grid = self.grid.clone();
         let old_buckets = self.buckets.clone();
+        let sender = sender;
         let mut propagation_queue: VecDeque<usize> = VecDeque::new();
+        co.yield_(()).await;
         'outer: loop {
             'backtrack: loop {
                 // I. Detect quit condition
@@ -430,16 +449,24 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     }
                 }
                 if min_bucket_id == 1 {
-                    return Ok(self.grid
-                        .iter()
-                        .map(|it| it.find_first_set(0).unwrap())
-                        .collect()); // We are done!
+                    sender.send(AsyncState::Complete(
+                        Ok(self.grid
+                            .iter()
+                            .map(|it| it.find_first_set(0).unwrap())
+                            .collect())
+                    )).unwrap();
+                    co.yield_(()).await;
                 }
 
                 // II. Choose random slot with a minimum probability set and collapse it's
                 // set to just one module
                 //println!("collapse no {}", collapse_no);
-                self.collapse_next_slot(&mut propagation_queue, min_bucket_id);
+                self.collapse_next_slot_async(
+                    &mut propagation_queue,
+                    min_bucket_id,
+                    sender.clone(),
+                    co
+                ).await;
 
                 // III. While propagation queue is not empty, propagate probability set to neighbours
                 // If neighbour's probability set is changed, add its index to a propagation queue
@@ -454,13 +481,39 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             self.buckets = old_buckets.clone();
             propagation_queue.clear();
 
+            sender.send(AsyncState::Contradiction).unwrap();
+            co.yield_(()).await;
+
             if contradictions_allowed == 0 {
                 break 'outer;
             }
 
             contradictions_allowed -= 1;
         }
-        Err(WfcError::TooManyContradictions)
+        sender.send(AsyncState::Complete(Err(WfcError::TooManyContradictions))).unwrap();
+        co.yield_(()).await;
+    }
+
+    pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
+        let (sender, tx) = sync_channel(0x1000000);
+        let mut my_generator = Gen::new(|co| async move {
+            self.collapse_async(sender, max_contradictions, &co).await;
+        });
+        loop {
+            match my_generator.resume() {
+                GeneratorState::Yielded(_) => {
+                    let received = tx.recv().unwrap();
+                    match received {
+                        AsyncState::Yield(_) => {}
+                        AsyncState::Contradiction => {}
+                        AsyncState::Complete(result) => {
+                            return result
+                        }
+                    }
+                },
+                GeneratorState::Complete(_) => {}
+            }
+        }
     }
 
     fn get_neighbours(&self, idx: usize) -> NeighbourQueryResult {
@@ -551,6 +604,42 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.buckets[1].push(slot_id);
         propagation_queue.push_back(slot_id);
     }
+
+    async fn collapse_next_slot_async(
+        &mut self,
+        propagation_queue: &mut VecDeque<usize>,
+        min_bucket_id: usize,
+        sender: SyncSender<AsyncState>,
+        co: &Co<()>
+    ) {
+        let next_slot_id_in_bucket = self.entropy_heuristic.choose_next_collapsed_slot(
+            self.width,
+            self.height,
+            self.modules,
+            &self.buckets[min_bucket_id]
+        );
+        let slot_id = self.buckets[min_bucket_id][next_slot_id_in_bucket];
+        let next_bit = self.entropy_choice_heuristic.choose_least_entropy_bit(
+            self.width,
+            self.height,
+            slot_id / self.width,
+            slot_id % self.width,
+            self.modules,
+            &self.grid[slot_id]
+        );
+        let new_slot = {
+            let mut slot = TBitSet::empty();
+            slot.set(next_bit);
+            slot
+        };
+        self.grid[slot_id] = new_slot;
+        self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
+        self.buckets[1].push(slot_id);
+        propagation_queue.push_back(slot_id);
+        sender.send(AsyncState::Yield((slot_id, next_bit))).unwrap();
+        co.yield_(()).await;
+    }
+
     fn east_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
         match self.east_memoizer.get(module_variants) {
             Some(v) => v.clone(),
