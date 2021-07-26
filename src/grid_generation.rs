@@ -1,9 +1,10 @@
 use {
-    rand::{thread_rng, distributions::Uniform, prelude::Distribution},
+    rand::{thread_rng},
     std::{hash::Hash, collections::{HashMap, VecDeque}},
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
 };
+use rand::Rng;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -41,8 +42,7 @@ impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
         available_indices: &[usize]
     ) -> usize {
         let mut rng = thread_rng();
-        let uniform = Uniform::from(0..available_indices.len());
-        uniform.sample(&mut rng)
+        rng.gen_range(0, available_indices.len())
     }
     fn new() -> Self { Self { _noop: Default::default() } }
 }
@@ -81,8 +81,7 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
     ) -> usize
     {
         let mut rng = thread_rng();
-        let uniform = Uniform::from(0..get_bits_set_count(slot_bits));
-        let random_bit_id = uniform.sample(&mut rng);
+        let random_bit_id = rng.gen_range(0, get_bits_set_count(slot_bits));
         let mut iterator = BitsIterator::new(slot_bits);
         iterator.nth(random_bit_id).unwrap()
     }
