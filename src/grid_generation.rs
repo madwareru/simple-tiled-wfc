@@ -159,11 +159,20 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         let idx = row * self.width + column;
         let mut value = TBitSet::empty();
         value.set(module);
+        self.set(idx, value);
 
         let mut first_neighbour_tier = Vec::new();
         self.propagate_neighbour_tier(idx, &mut first_neighbour_tier);
         for &id in first_neighbour_tier.iter() {
-            self.propagate_backward(id);
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in first_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
+        }
+        for &id in first_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
         }
 
         let result = self.collapse(10);
@@ -174,7 +183,15 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             self.propagate_neighbour_tier(idx, &mut second_neighbour_tier);
         }
         for &id in second_neighbour_tier.iter() {
-            self.propagate_backward(id);
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in second_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
+        }
+        for &id in second_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
         }
 
         let result = self.collapse(10);
@@ -185,13 +202,25 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             self.propagate_neighbour_tier(idx, &mut third_neighbour_tier);
         }
         for &id in third_neighbour_tier.iter() {
-            self.propagate_backward(id);
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in third_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
+        }
+        for &id in third_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
         }
 
         self.collapse(10)
     }
 
-    fn propagate_backward(&mut self, id: usize) {
+    fn propagate_backward(&mut self, id_to_ignore: usize, id: usize) {
+        if id == id_to_ignore {
+            return;
+        }
+
         let mut probability_set = make_initial_probabilities(self.modules);
         let nbr_ids = self.get_neighbours(id);
         if let Some(west_neighbour) = nbr_ids.west {
