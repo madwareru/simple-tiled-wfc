@@ -256,7 +256,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         row: usize,
         column: usize,
         module: usize
-    ) -> Result<(), WfcError> {
+    ) -> Result<Vec<usize>, WfcError> {
         let idx = row * self.width + column;
         let mut value = TBitSet::empty();
         value.set(module);
@@ -418,7 +418,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.propagate(&mut propagation_queue);
     }
 
-    pub fn collapse(&mut self, max_contradictions: i32) -> Result<(), WfcError> {
+    pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
         let mut contradictions_allowed = max_contradictions;
         let old_grid = self.grid.clone();
         let old_buckets = self.buckets.clone();
@@ -437,7 +437,10 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     }
                 }
                 if min_bucket_id == 1 {
-                    return Ok(()); // We are done!
+                    return Ok(self.grid
+                        .iter()
+                        .map(|it| it.find_first_set(0).unwrap())
+                        .collect()); // We are done!
                 }
 
                 // II. Choose random slot with a minimum probability set and collapse it's
@@ -526,7 +529,6 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(neighbour_id, probability_set);
 
         if probability_set.test_none() { return; }
-
         propagation_queue.push_back(neighbour_id);
     }
 
