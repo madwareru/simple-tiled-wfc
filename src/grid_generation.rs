@@ -442,15 +442,6 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
                 self.propagate(&mut propagation_queue);
             }
 
-            // println!("contradiction!");
-            // self.print_probability_counts();
-
-            if contradictions_allowed == 0 {
-                break 'outer;
-            }
-
-            contradictions_allowed -= 1;
-
             // In the case of backtrack we need to bring the state of a grid back to what it was
             // at the beginning. The propagation queue need to be flushed too obviously
             for i in 0..self.grid.len() {
@@ -458,6 +449,12 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             }
             self.buckets = old_buckets.clone();
             propagation_queue.clear();
+
+            if contradictions_allowed == 0 {
+                break 'outer;
+            }
+
+            contradictions_allowed -= 1;
         }
         Err(WfcError::TooManyContradictions)
     }
