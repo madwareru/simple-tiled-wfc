@@ -206,6 +206,23 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             self.propagate_backward(idx, id);
         }
 
+        let result = self.collapse(10);
+        if result.is_ok() { return result }
+
+        let mut fourth_neighbour_tier = Vec::new();
+        for &prev_id in third_neighbour_tier.iter() {
+            fourth_neighbour_tier.push(prev_id);
+            self.propagate_neighbour_tier(prev_id, &mut fourth_neighbour_tier);
+        }
+        for &id in fourth_neighbour_tier.iter() {
+            if id != idx {
+                self.set(id, make_initial_probabilities(self.modules));
+            }
+        }
+        for &id in fourth_neighbour_tier.iter() {
+            self.propagate_backward(idx, id);
+        }
+
         self.collapse(10)
     }
 
@@ -235,62 +252,26 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         self.set(id, probability_set);
     }
 
-    fn propagate_neighbour_tier(&mut self, idx: usize, first_neighbour_tier: &mut Vec<usize>) {
+    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>) {
         let neighbours = self.get_neighbours(idx);
         if let Some(west_neighbour) = neighbours.west {
-            first_neighbour_tier.push(west_neighbour);
-            let nbrs = self.get_neighbours(west_neighbour);
-            if let Some(nbr) = nbrs.north {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
-            }
-            if let Some(nbr) = nbrs.south {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
+            if !neighbour_tier.iter().any(|it| *it == west_neighbour) {
+                neighbour_tier.push(west_neighbour);
             }
         }
         if let Some(east_neighbour) = neighbours.east {
-            first_neighbour_tier.push(east_neighbour);
-            let nbrs = self.get_neighbours(east_neighbour);
-            if let Some(nbr) = nbrs.north {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
-            }
-            if let Some(nbr) = nbrs.south {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
+            if !neighbour_tier.iter().any(|it| *it == east_neighbour) {
+                neighbour_tier.push(east_neighbour);
             }
         }
         if let Some(north_neighbour) = neighbours.north {
-            first_neighbour_tier.push(north_neighbour);
-            let nbrs = self.get_neighbours(north_neighbour);
-            if let Some(nbr) = nbrs.east {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
-            }
-            if let Some(nbr) = nbrs.west {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
+            if !neighbour_tier.iter().any(|it| *it == north_neighbour) {
+                neighbour_tier.push(north_neighbour);
             }
         }
         if let Some(south_neighbour) = neighbours.south {
-            first_neighbour_tier.push(south_neighbour);
-            let nbrs = self.get_neighbours(south_neighbour);
-            if let Some(nbr) = nbrs.east {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
-            }
-            if let Some(nbr) = nbrs.west {
-                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
-                    first_neighbour_tier.push(nbr);
-                }
+            if !neighbour_tier.iter().any(|it| *it == south_neighbour) {
+                neighbour_tier.push(south_neighbour);
             }
         }
     }
