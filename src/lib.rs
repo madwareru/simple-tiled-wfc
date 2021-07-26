@@ -4,7 +4,7 @@ pub mod errors;
 pub mod grid_generation;
 pub mod voxel_generation;
 
-pub(crate) struct BitsIterator<'a, T: BitSearch>  {
+pub struct BitsIterator<'a, T: BitSearch>  {
     iterated: &'a T,
     idx: usize
 }
@@ -32,6 +32,6 @@ impl<'a, T: BitSearch> Iterator for BitsIterator<'a, T> {
     }
 }
 
-pub(crate) fn get_bits_set_count<'a, T: BitSearch>(bit_set: &T) -> usize {
+pub fn get_bits_set_count<'a, T: BitSearch>(bit_set: &T) -> usize {
     BitsIterator::new(bit_set).fold(0, |acc, _| acc + 1)
 }
