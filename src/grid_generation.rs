@@ -175,7 +175,7 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     entropy_heuristic: TEntropyHeuristic,
     entropy_choice_heuristic: TEntropyChoiceHeuristic,
     buckets: Vec<Vec<usize>>,
-    history: Vec<(usize, TBitSet)>
+    history: VecDeque<(usize, TBitSet)>
 }
 
 impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
@@ -213,7 +213,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history: Vec::new()
+            history: VecDeque::new()
         }
     }
 
@@ -247,7 +247,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history: Vec::new()
+            history: VecDeque::new()
         }
     }
 
@@ -384,7 +384,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         for idx in 0..(self.width * self.height) {
             self.buckets[self.modules.len()].push(idx);
             self.grid[idx] = initial_probabilities;
-            self.history.push((idx, initial_probabilities));
+            self.history.push_back((idx, initial_probabilities));
         }
     }
 
@@ -405,7 +405,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         self.buckets[new_bits_set].push(idx);
         self.grid[idx] = value;
-        self.history.push((idx, value));
+        self.history.push_back((idx, value));
     }
 
     pub fn set_module(&mut self, row: usize, column: usize, module: usize) {
@@ -454,7 +454,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             // at the beginning. The propagation queue need to be flushed too obviously
             for i in 0..self.grid.len() {
                 self.grid[i] = old_grid[i];
-                self.history.push((i, old_grid[i]));
+                self.history.push_back((i, old_grid[i]));
             }
             self.buckets = old_buckets.clone();
             propagation_queue.clear();
@@ -468,7 +468,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         Err(WfcError::TooManyContradictions)
     }
 
-    pub fn become_history(self) -> Vec<(usize, TBitSet)> {
+    pub fn become_history(self) -> VecDeque<(usize, TBitSet)> {
         self.history
     }
 
