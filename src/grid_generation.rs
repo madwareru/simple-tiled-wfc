@@ -21,6 +21,8 @@ pub trait WfcEntropyHeuristic<TBitSet>
 {
     fn choose_next_collapsed_slot(
         &self,
+        width: usize,
+        height: usize,
         modules: &[WfcModule<TBitSet>],
         available_indices: &[usize]
     ) -> usize;
@@ -38,6 +40,8 @@ impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
     BitUnion<Output = TBitSet> {
     fn choose_next_collapsed_slot(
         &self,
+        _width: usize,
+        _height: usize,
         _modules: &[WfcModule<TBitSet>],
         available_indices: &[usize]
     ) -> usize {
@@ -55,6 +59,8 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
 {
     fn choose_least_entropy_bit(
         &self,
+        width: usize,
+        height: usize,
         row: usize,
         column: usize,
         modules: &[WfcModule<TBitSet>],
@@ -74,6 +80,8 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
     BitUnion<Output = TBitSet> {
     fn choose_least_entropy_bit(
         &self,
+        _width: usize,
+        _height: usize,
         _row: usize,
         _column: usize,
         _modules: &[WfcModule<TBitSet>],
@@ -611,11 +619,15 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         min_bucket_id: usize
     ) {
         let next_slot_id_in_bucket = self.entropy_heuristic.choose_next_collapsed_slot(
+            self.width,
+            self.height,
             self.modules,
             &self.buckets[min_bucket_id]
         );
         let slot_id = self.buckets[min_bucket_id][next_slot_id_in_bucket];
         let next_bit = self.entropy_choice_heuristic.choose_least_entropy_bit(
+            self.width,
+            self.height,
             slot_id / self.width,
             slot_id % self.width,
             self.modules,
