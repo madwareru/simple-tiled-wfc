@@ -219,12 +219,12 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             first_neighbour_tier.push(west_neighbour);
             let nbrs = self.get_neighbours(west_neighbour);
             if let Some(nbr) = nbrs.north {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
             if let Some(nbr) = nbrs.south {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
@@ -233,12 +233,12 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             first_neighbour_tier.push(east_neighbour);
             let nbrs = self.get_neighbours(east_neighbour);
             if let Some(nbr) = nbrs.north {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
             if let Some(nbr) = nbrs.south {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
@@ -247,12 +247,12 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             first_neighbour_tier.push(north_neighbour);
             let nbrs = self.get_neighbours(north_neighbour);
             if let Some(nbr) = nbrs.east {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
             if let Some(nbr) = nbrs.west {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
@@ -261,12 +261,12 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             first_neighbour_tier.push(south_neighbour);
             let nbrs = self.get_neighbours(south_neighbour);
             if let Some(nbr) = nbrs.east {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
             if let Some(nbr) = nbrs.west {
-                if !first_neighbour_tier.iter().any(|it| it == nbr) {
+                if !first_neighbour_tier.iter().any(|it| *it == nbr) {
                     first_neighbour_tier.push(nbr);
                 }
             }
