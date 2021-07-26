@@ -495,25 +495,55 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
     }
 
     pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
-        let (sender, tx) = sync_channel(0x1000000);
-        let mut my_generator = Gen::new(|co| async move {
-            self.collapse_async(sender, max_contradictions, &co).await;
-        });
-        loop {
-            match my_generator.resume() {
-                GeneratorState::Yielded(_) => {
-                    let received = tx.recv().unwrap();
-                    match received {
-                        AsyncState::Yield(_) => {}
-                        AsyncState::Contradiction => {}
-                        AsyncState::Complete(result) => {
-                            return result
-                        }
+        let mut contradictions_allowed = max_contradictions;
+        let old_grid = self.grid.clone();
+        let old_buckets = self.buckets.clone();
+        let mut propagation_queue: VecDeque<usize> = VecDeque::new();
+        'outer: loop {
+            'backtrack: loop {
+                // I. Detect quit condition
+                if !self.buckets[0].is_empty() {
+                    break 'backtrack; // we found contradiction and need to backtrack
+                }
+                let mut min_bucket_id = 1;
+                'bucket_search: for i in 2_..self.buckets.len() {
+                    if !self.buckets[i].is_empty() {
+                        min_bucket_id = i;
+                        break 'bucket_search;
                     }
-                },
-                GeneratorState::Complete(_) => {}
+                }
+                if min_bucket_id == 1 {
+                    return Ok(self.grid
+                        .iter()
+                        .map(|it| it.find_first_set(0).unwrap())
+                        .collect()); // We are done!
+                }
+
+                // II. Choose random slot with a minimum probability set and collapse it's
+                // set to just one module
+                //println!("collapse no {}", collapse_no);
+                self.collapse_next_slot(&mut propagation_queue, min_bucket_id);
+
+                // III. While propagation queue is not empty, propagate probability set to neighbours
+                // If neighbour's probability set is changed, add its index to a propagation queue
+                self.propagate(&mut propagation_queue);
             }
+
+            // In the case of backtrack we need to bring the state of a grid back to what it was
+            // at the beginning. The propagation queue need to be flushed too obviously
+            for i in 0..self.grid.len() {
+                self.grid[i] = old_grid[i];
+            }
+            self.buckets = old_buckets.clone();
+            propagation_queue.clear();
+
+            if contradictions_allowed == 0 {
+                break 'outer;
+            }
+
+            contradictions_allowed -= 1;
         }
+        Err(WfcError::TooManyContradictions)
     }
 
     fn get_neighbours(&self, idx: usize) -> NeighbourQueryResult {
