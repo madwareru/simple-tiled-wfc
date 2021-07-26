@@ -1,5 +1,5 @@
 use {
-    rand::{thread_rng, distributions::Uniform, prelude::{Distribution, ThreadRng}},
+    rand::{thread_rng, distributions::Uniform, prelude::Distribution},
     std::{hash::Hash, collections::{HashMap, VecDeque}},
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
@@ -10,6 +10,84 @@ struct NeighbourQueryResult {
     south: Option<usize>,
     east: Option<usize>,
     west: Option<usize>,
+}
+
+pub trait WfcEntropyHeuristic<TBitSet>
+    where TBitSet:
+    BitSearch + BitEmpty + BitSet + BitIntersection +
+    BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+    BitUnion<Output = TBitSet>
+{
+    fn choose_next_collapsed_slot(
+        &self,
+        modules: &[WfcModule<TBitSet>],
+        available_indices: &[usize]
+    ) -> usize;
+
+    fn new() -> Self;
+}
+
+pub struct DefaultEntropyHeuristic {
+    _noop: u8
+}
+impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
+    where TBitSet:
+    BitSearch + BitEmpty + BitSet + BitIntersection +
+    BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+    BitUnion<Output = TBitSet> {
+    fn choose_next_collapsed_slot(
+        &self,
+        _modules: &[WfcModule<TBitSet>],
+        available_indices: &[usize]
+    ) -> usize {
+        let mut rng = thread_rng();
+        let uniform = Uniform::from(0..available_indices.len());
+        uniform.sample(&mut rng)
+    }
+    fn new() -> Self { Self { _noop: Default::default() } }
+}
+
+pub trait WfcEntropyChoiceHeuristic<TBitSet>
+    where TBitSet:
+    BitSearch + BitEmpty + BitSet + BitIntersection +
+    BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+    BitUnion<Output = TBitSet>
+{
+    fn choose_least_entropy_bit(
+        &self,
+        row: usize,
+        column: usize,
+        modules: &[WfcModule<TBitSet>],
+        slot_bits: &TBitSet,
+    ) -> usize;
+
+    fn new() -> Self;
+}
+
+pub struct DefaultEntropyChoiceHeuristic {
+    _noop: u8
+}
+impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeuristic
+    where TBitSet:
+    BitSearch + BitEmpty + BitSet + BitIntersection +
+    BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+    BitUnion<Output = TBitSet> {
+    fn choose_least_entropy_bit(
+        &self,
+        _row: usize,
+        _column: usize,
+        _modules: &[WfcModule<TBitSet>],
+        slot_bits: &TBitSet
+    ) -> usize
+    {
+        let mut rng = thread_rng();
+        let uniform = Uniform::from(0..get_bits_set_count(slot_bits));
+        let random_bit_id = uniform.sample(&mut rng);
+        let mut iterator = BitsIterator::new(slot_bits);
+        iterator.nth(random_bit_id).unwrap()
+    }
+
+    fn new() -> Self { Self { _noop: Default::default() } }
 }
 
 pub struct WfcModule<TBitSet>
@@ -73,11 +151,14 @@ fn make_initial_probabilities<TBitSet>(modules: &[WfcModule<TBitSet>]) -> TBitSe
         )
 }
 
-pub struct WfcContext<'a, TBitSet>
-    where TBitSet:
-    BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
-    BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-    BitUnion<Output = TBitSet>
+pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, TEntropyChoiceHeuristic = DefaultEntropyChoiceHeuristic>
+    where
+    TBitSet:
+        BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+        BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>,
+    TEntropyHeuristic: WfcEntropyHeuristic<TBitSet>,
+    TEntropyChoiceHeuristic: WfcEntropyChoiceHeuristic<TBitSet>
 {
     modules: &'a [WfcModule<TBitSet>],
     width: usize,
@@ -87,14 +168,19 @@ pub struct WfcContext<'a, TBitSet>
     south_memoizer: HashMap<TBitSet, TBitSet>,
     east_memoizer: HashMap<TBitSet, TBitSet>,
     west_memoizer: HashMap<TBitSet, TBitSet>,
+    entropy_heuristic: TEntropyHeuristic,
+    entropy_choice_heuristic: TEntropyChoiceHeuristic,
     buckets: Vec<Vec<usize>>
 }
 
-impl<'a, TBitSet> WfcContext<'a, TBitSet>
-    where TBitSet:
-    BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
-    BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-    BitUnion<Output = TBitSet>
+impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
+    where
+    TBitSet:
+        BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+        BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>,
+    TEntropyHeuristic: WfcEntropyHeuristic<TBitSet>,
+    TEntropyChoiceHeuristic: WfcEntropyChoiceHeuristic<TBitSet>
 {
     pub fn new(
         modules: &'a [WfcModule<TBitSet>],
@@ -117,6 +203,8 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             south_memoizer: HashMap::new(),
             east_memoizer: HashMap::new(),
             west_memoizer: HashMap::new(),
+            entropy_heuristic: TEntropyHeuristic::new(),
+            entropy_choice_heuristic: TEntropyChoiceHeuristic::new(),
             buckets
         }
     }
@@ -126,7 +214,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         width: usize,
         height: usize,
         collapse: &[usize]
-    ) -> Self<> {
+    ) -> Self {
         assert_eq!(collapse.len(), width * height);
 
         let mut grid: Vec<TBitSet> = Vec::new();
@@ -146,6 +234,8 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             south_memoizer: HashMap::new(),
             east_memoizer: HashMap::new(),
             west_memoizer: HashMap::new(),
+            entropy_heuristic: TEntropyHeuristic::new(),
+            entropy_choice_heuristic: TEntropyChoiceHeuristic::new(),
             buckets
         }
     }
@@ -411,7 +501,6 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         let old_grid = self.grid.clone();
         let old_buckets = self.buckets.clone();
         let mut propagation_queue: VecDeque<usize> = VecDeque::new();
-        let mut rng = thread_rng();
         'outer: loop {
             'backtrack: loop {
                 // I. Detect quit condition
@@ -435,7 +524,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
                 // II. Choose random slot with a minimum probability set and collapse it's
                 // set to just one module
                 //println!("collapse no {}", collapse_no);
-                self.collapse_random_slot(&mut propagation_queue, &mut rng, min_bucket_id);
+                self.collapse_next_slot(&mut propagation_queue, min_bucket_id);
 
                 // III. While propagation queue is not empty, propagate probability set to neighbours
                 // If neighbour's probability set is changed, add its index to a propagation queue
@@ -517,31 +606,29 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         propagation_queue.push_back(neighbour_id);
     }
 
-    fn collapse_random_slot(
+    fn collapse_next_slot(
         &mut self,
         propagation_queue: &mut VecDeque<usize>,
-        mut rng: &mut ThreadRng,
         min_bucket_id: usize
     ) {
-        let random_slot_id_in_bucket = {
-            let uniform = Uniform::from(0..self.buckets[min_bucket_id].len());
-            uniform.sample(&mut rng)
-        };
-        let slot_id = self.buckets[min_bucket_id][random_slot_id_in_bucket];
-        let random_bit = {
-            let slot = &self.grid[slot_id];
-            let uniform = Uniform::from(0..get_bits_set_count(slot));
-            let random_bit_id = uniform.sample(&mut rng);
-            let mut iterator = BitsIterator::new(slot);
-            iterator.nth(random_bit_id).unwrap()
-        };
+        let next_slot_id_in_bucket = self.entropy_heuristic.choose_next_collapsed_slot(
+            self.modules,
+            &self.buckets[min_bucket_id]
+        );
+        let slot_id = self.buckets[min_bucket_id][next_slot_id_in_bucket];
+        let next_bit = self.entropy_choice_heuristic.choose_least_entropy_bit(
+            slot_id / self.width,
+            slot_id % self.width,
+            self.modules,
+            &self.grid[slot_id]
+        );
         let new_slot = {
             let mut slot = TBitSet::empty();
-            slot.set(random_bit);
+            slot.set(next_bit);
             slot
         };
         self.grid[slot_id] = new_slot;
-        self.buckets[min_bucket_id].remove(random_slot_id_in_bucket);
+        self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
         self.buckets[1].push(slot_id);
         propagation_queue.push_back(slot_id);
     }
