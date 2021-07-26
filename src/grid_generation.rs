@@ -258,7 +258,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(idx, value);
 
         let mut tier_1 = Vec::new();
-        self.propagate_neighbour_tier(idx, &mut tier_1);
+        self.propagate_neighbour_tier(idx, &mut tier_1, value);
         for &id in tier_1.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
@@ -274,7 +274,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_2 = Vec::new();
         for &prev_id in tier_1.iter() {
             tier_2.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_2);
+            self.propagate_neighbour_tier(prev_id, &mut tier_2, value);
         }
         for &id in tier_2.iter() {
             if id != idx {
@@ -291,7 +291,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_3 = Vec::new();
         for &prev_id in tier_2.iter() {
             tier_3.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_3);
+            self.propagate_neighbour_tier(prev_id, &mut tier_3, value);
         }
         for &id in tier_3.iter() {
             if id != idx {
@@ -308,7 +308,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_4 = Vec::new();
         for &prev_id in tier_3.iter() {
             tier_4.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_4);
+            self.propagate_neighbour_tier(prev_id, &mut tier_4, value);
         }
         for &id in tier_4.iter() {
             if id != idx {
@@ -325,7 +325,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_5 = Vec::new();
         for &prev_id in tier_4.iter() {
             tier_5.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_5);
+            self.propagate_neighbour_tier(prev_id, &mut tier_5, value);
         }
         for &id in tier_5.iter() {
             if id != idx {
@@ -342,7 +342,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_6 = Vec::new();
         for &prev_id in tier_5.iter() {
             tier_6.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_6);
+            self.propagate_neighbour_tier(prev_id, &mut tier_6, value);
         }
         for &id in tier_6.iter() {
             if id != idx {
@@ -359,7 +359,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_7 = Vec::new();
         for &prev_id in tier_6.iter() {
             tier_7.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_7);
+            self.propagate_neighbour_tier(prev_id, &mut tier_7, value);
         }
         for &id in tier_7.iter() {
             if id != idx {
@@ -376,7 +376,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_8 = Vec::new();
         for &prev_id in tier_7.iter() {
             tier_8.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_8);
+            self.propagate_neighbour_tier(prev_id, &mut tier_8, value);
         }
         for &id in tier_8.iter() {
             if id != idx {
@@ -393,7 +393,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut tier_9 = Vec::new();
         for &prev_id in tier_8.iter() {
             tier_9.push(prev_id);
-            self.propagate_neighbour_tier(prev_id, &mut tier_9);
+            self.propagate_neighbour_tier(prev_id, &mut tier_9, value);
         }
         for &id in tier_9.iter() {
             if id != idx {
@@ -433,25 +433,41 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(id, probability_set);
     }
 
-    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>) {
+    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>, value: TBitSet) {
         let neighbours = self.get_neighbours(idx);
         if let Some(west_neighbour) = neighbours.west {
-            if !neighbour_tier.iter().any(|it| *it == west_neighbour) {
+            let west_modules = self.grid[west_neighbour];
+            let id = west_modules.find_first_set(0).unwrap();
+            let west_module = &self.modules[id];
+            if west_module.east_neighbours.intersection(value).test_none() &&
+                !neighbour_tier.iter().any(|it| *it == west_neighbour) {
                 neighbour_tier.push(west_neighbour);
             }
         }
         if let Some(east_neighbour) = neighbours.east {
-            if !neighbour_tier.iter().any(|it| *it == east_neighbour) {
+            let east_modules = self.grid[east_neighbour];
+            let id = east_modules.find_first_set(0).unwrap();
+            let east_module = &self.modules[id];
+            if east_module.west_neighbours.intersection(value).test_none() &&
+                !neighbour_tier.iter().any(|it| *it == east_neighbour) {
                 neighbour_tier.push(east_neighbour);
             }
         }
         if let Some(north_neighbour) = neighbours.north {
-            if !neighbour_tier.iter().any(|it| *it == north_neighbour) {
+            let north_modules = self.grid[north_neighbour];
+            let id = north_modules.find_first_set(0).unwrap();
+            let north_module = &self.modules[id];
+            if north_module.south_neighbours.intersection(value).test_none() &&
+                !neighbour_tier.iter().any(|it| *it == north_neighbour) {
                 neighbour_tier.push(north_neighbour);
             }
         }
         if let Some(south_neighbour) = neighbours.south {
-            if !neighbour_tier.iter().any(|it| *it == south_neighbour) {
+            let south_modules = self.grid[south_neighbour];
+            let id = south_modules.find_first_set(0).unwrap();
+            let south_module = &self.modules[id];
+            if south_module.north_neighbours.intersection(value).test_none() &&
+                !neighbour_tier.iter().any(|it| *it == south_neighbour) {
                 neighbour_tier.push(south_neighbour);
             }
         }
