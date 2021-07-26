@@ -258,7 +258,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(idx, value);
 
         let mut tier = Vec::new();
-        self.propagate_neighbour_tier(idx, &mut tier, value);
+        self.propagate_neighbour_tier(idx, &mut tier);
         for &id in tier.iter() {
             if id != idx {
                 self.set(id, make_initial_probabilities(self.modules));
@@ -275,7 +275,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             let mut next_tier = Vec::new();
             for &prev_id in tier.iter() {
                 next_tier.push(prev_id);
-                self.propagate_neighbour_tier(prev_id, &mut next_tier, value);
+                self.propagate_neighbour_tier(prev_id, &mut next_tier);
             }
             for &id in next_tier.iter() {
                 if id != idx {
@@ -320,37 +320,25 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.set(id, probability_set);
     }
 
-    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>, value: TBitSet) {
+    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>) {
         let neighbours = self.get_neighbours(idx);
         if let Some(west_neighbour) = neighbours.west {
-            let west_modules = self.grid[west_neighbour];
-            let west_module = west_modules.find_first_set(0).map(|id| &self.modules[id]);
-            if west_module.map(|it| it.east_neighbours.intersection(value).test_none()).unwrap_or(true) &&
-                !neighbour_tier.iter().any(|it| *it == west_neighbour) {
+            if !neighbour_tier.iter().any(|it| *it == west_neighbour) {
                 neighbour_tier.push(west_neighbour);
             }
         }
         if let Some(east_neighbour) = neighbours.east {
-            let east_modules = self.grid[east_neighbour];
-            let east_module = east_modules.find_first_set(0).map(|id| &self.modules[id]);
-            if east_module.map(|it| it.west_neighbours.intersection(value).test_none()).unwrap_or(true) &&
-                !neighbour_tier.iter().any(|it| *it == east_neighbour) {
+            if !neighbour_tier.iter().any(|it| *it == east_neighbour) {
                 neighbour_tier.push(east_neighbour);
             }
         }
         if let Some(north_neighbour) = neighbours.north {
-            let north_modules = self.grid[north_neighbour];
-            let north_module = north_modules.find_first_set(0).map(|id| &self.modules[id]);
-            if north_module.map(|it| it.south_neighbours.intersection(value).test_none()).unwrap_or(true) &&
-                !neighbour_tier.iter().any(|it| *it == north_neighbour) {
+            if !neighbour_tier.iter().any(|it| *it == north_neighbour) {
                 neighbour_tier.push(north_neighbour);
             }
         }
         if let Some(south_neighbour) = neighbours.south {
-            let south_modules = self.grid[south_neighbour];
-            let south_module = south_modules.find_first_set(0).map(|id| &self.modules[id]);
-            if south_module.map(|it| it.north_neighbours.intersection(value).test_none()).unwrap_or(true) &&
-                !neighbour_tier.iter().any(|it| *it == south_neighbour) {
+            if !neighbour_tier.iter().any(|it| *it == south_neighbour) {
                 neighbour_tier.push(south_neighbour);
             }
         }
