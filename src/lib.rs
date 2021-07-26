@@ -10,7 +10,7 @@ pub struct BitsIterator<'a, T: BitSearch>  {
 }
 
 impl<'a, T: BitSearch> BitsIterator<'a, T> {
-    pub(crate) fn new(iterated: &'a T) -> Self {
+    pub fn new(iterated: &'a T) -> Self {
         Self {
             iterated,
             idx: 0
