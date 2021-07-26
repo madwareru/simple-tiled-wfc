@@ -5,7 +5,6 @@ use {
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
 };
 use rand::Rng;
-use std::alloc::Global;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -266,15 +265,20 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for &id in tier.iter() {
-            if id != idx {
-                self.propagate_backward(id, &mut tier_probabilities);
-            } else {
-                tier_probabilities.push(value)
+        for _ in 0..4 {
+            // we are trying multiple awful stuff to make our thing look better :)
+            // here we have some kind of convolution and we are trying to make it in clear phases
+            tier_probabilities.clear();
+            for &id in tier.iter() {
+                if id != idx {
+                    self.propagate_backward(id, &mut tier_probabilities);
+                } else {
+                    tier_probabilities.push(value)
+                }
             }
-        }
-        for &(id, prob) in tier.iter().zip(tier_probabilities.iter()) {
-            self.set(id, prob);
+            for (&id, &prob) in tier.iter().zip(tier_probabilities.iter()) {
+                self.set(id, prob);
+            }
         }
 
         let result = self.collapse(10);
@@ -292,15 +296,20 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     self.set(id, make_initial_probabilities(self.modules));
                 }
             }
-            for &id in next_tier.iter() {
-                if id != idx {
-                    self.propagate_backward(id, &mut tier_probabilities);
-                } else {
-                    tier_probabilities.push(value)
+            for _ in 0..4 {
+                // we are trying multiple awful stuff to make our thing look better :)
+                // here we have some kind of convolution and we are trying to make it in clear phases
+                tier_probabilities.clear();
+                for &id in next_tier.iter() {
+                    if id != idx {
+                        self.propagate_backward(id, &mut tier_probabilities);
+                    } else {
+                        tier_probabilities.push(value)
+                    }
                 }
-            }
-            for &(id, prob) in next_tier.iter().zip(tier_probabilities.iter()) {
-                self.set(id, prob);
+                for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
+                    self.set(id, prob);
+                }
             }
             tier = next_tier;
 
