@@ -437,36 +437,32 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let neighbours = self.get_neighbours(idx);
         if let Some(west_neighbour) = neighbours.west {
             let west_modules = self.grid[west_neighbour];
-            let id = west_modules.find_first_set(0).unwrap();
-            let west_module = &self.modules[id];
-            if west_module.east_neighbours.intersection(value).test_none() &&
+            let west_module = west_modules.find_first_set(0).map(|id| &self.modules[id]);
+            if west_module.map(|it| it.east_neighbours.intersection(value).test_none()).unwrap_or(true) &&
                 !neighbour_tier.iter().any(|it| *it == west_neighbour) {
                 neighbour_tier.push(west_neighbour);
             }
         }
         if let Some(east_neighbour) = neighbours.east {
             let east_modules = self.grid[east_neighbour];
-            let id = east_modules.find_first_set(0).unwrap();
-            let east_module = &self.modules[id];
-            if east_module.west_neighbours.intersection(value).test_none() &&
+            let east_module = east_modules.find_first_set(0).map(|id| &self.modules[id]);
+            if east_module.map(|it| it.west_neighbours.intersection(value).test_none()).unwrap_or(true) &&
                 !neighbour_tier.iter().any(|it| *it == east_neighbour) {
                 neighbour_tier.push(east_neighbour);
             }
         }
         if let Some(north_neighbour) = neighbours.north {
             let north_modules = self.grid[north_neighbour];
-            let id = north_modules.find_first_set(0).unwrap();
-            let north_module = &self.modules[id];
-            if north_module.south_neighbours.intersection(value).test_none() &&
+            let north_module = north_modules.find_first_set(0).map(|id| &self.modules[id]);
+            if north_module.map(|it| it.south_neighbours.intersection(value).test_none()).unwrap_or(true) &&
                 !neighbour_tier.iter().any(|it| *it == north_neighbour) {
                 neighbour_tier.push(north_neighbour);
             }
         }
         if let Some(south_neighbour) = neighbours.south {
             let south_modules = self.grid[south_neighbour];
-            let id = south_modules.find_first_set(0).unwrap();
-            let south_module = &self.modules[id];
-            if south_module.north_neighbours.intersection(value).test_none() &&
+            let south_module = south_modules.find_first_set(0).map(|id| &self.modules[id]);
+            if south_module.map(|it| it.north_neighbours.intersection(value).test_none()).unwrap_or(true) &&
                 !neighbour_tier.iter().any(|it| *it == south_neighbour) {
                 neighbour_tier.push(south_neighbour);
             }
