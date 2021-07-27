@@ -197,8 +197,10 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
         let initial_probabilities = make_initial_probabilities(modules);
+        let mut history = VecDeque::new();
         for idx in 0..(width * height) {
             buckets[modules.len()].push(idx);
+            history.push_back((idx, initial_probabilities));
             grid.push(initial_probabilities);
         }
         Self {
@@ -213,7 +215,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history: VecDeque::new()
+            history
         }
     }
 
@@ -229,6 +231,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
+        let mut history = VecDeque::new();
         for idx in 0..(width * height) {
             buckets[1].push(idx);
             grid.push(make_one_bit_entry(collapse[idx]));
@@ -245,7 +248,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history: VecDeque::new()
+            history
         }
     }
 
