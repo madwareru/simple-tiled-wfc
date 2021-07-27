@@ -1,4 +1,4 @@
-use bitsetium::BitSearch;
+use bitsetium::{BitSearch, BitSet, BitEmpty};
 
 pub mod errors;
 pub mod grid_generation;
@@ -34,4 +34,10 @@ impl<'a, T: BitSearch> Iterator for BitsIterator<'a, T> {
 
 pub fn get_bits_set_count<'a, T: BitSearch>(bit_set: &T) -> usize {
     BitsIterator::new(bit_set).fold(0, |acc, _| acc + 1)
+}
+
+pub fn make_one_bit_entry<TBitSet: BitEmpty+BitSet>(bit: usize) -> TBitSet {
+    let mut slot = TBitSet::empty();
+    slot.set(bit);
+    slot
 }

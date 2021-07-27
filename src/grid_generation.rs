@@ -5,7 +5,7 @@ use {
         collections::{HashMap, VecDeque}
     },
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
-    crate::{get_bits_set_count, errors::WfcError, BitsIterator}
+    crate::{get_bits_set_count, make_one_bit_entry, errors::WfcError, BitsIterator}
 };
 
 struct NeighbourQueryResult {
@@ -230,10 +230,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
         for idx in 0..(width * height) {
-            let mut initial = TBitSet::empty();
-            initial.set(collapse[idx]);
             buckets[1].push(idx);
-            grid.push(initial);
+            grid.push(make_one_bit_entry(collapse[idx]));
         }
         Self {
             modules,
@@ -258,8 +256,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         module: usize
     ) -> Result<Vec<usize>, WfcError> {
         let idx = row * self.width + column;
-        let mut value = TBitSet::empty();
-        value.set(module);
+        let value = make_one_bit_entry(module);
         self.set(idx, value);
 
         let mut tier = Vec::new();
@@ -410,9 +407,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
     pub fn set_module(&mut self, row: usize, column: usize, module: usize) {
         let idx = row * self.width + column;
-        let mut value = TBitSet::empty();
-        value.set(module);
-        self.set(idx, value);
+        self.set(idx, make_one_bit_entry(module));
         let mut propagation_queue: VecDeque<usize> = VecDeque::new();
         propagation_queue.push_back(idx);
         self.propagate(&mut propagation_queue);
@@ -552,30 +547,26 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             self.modules,
             &self.grid[slot_id]
         );
-        let new_slot = {
-            let mut slot = TBitSet::empty();
-            slot.set(next_bit);
-            slot
-        };
+        let new_slot = make_one_bit_entry(next_bit);
         self.grid[slot_id] = new_slot;
+        self.history.push_back((slot_id, new_slot));
         self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
         self.buckets[1].push(slot_id);
         propagation_queue.push_back(slot_id);
     }
 
     fn east_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
-        match self.east_memoizer.get(module_variants) {
-            Some(v) => v.clone(),
-            None => {
-                let iterator = BitsIterator::new(module_variants);
+        self.east_memoizer
+            .get(module_variants)
+            .map(|it| *it)
+            .unwrap_or_else(|| {
                 let mut set = TBitSet::empty();
-                for module_id in iterator {
+                for module_id in BitsIterator::new(module_variants) {
                     set = set.union(self.modules[module_id].east_neighbours);
                 }
                 self.east_memoizer.insert(module_variants.clone(), set);
                 set
-            }
-        }
+            })
     }
     fn west_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
         match self.west_memoizer.get(module_variants) {
