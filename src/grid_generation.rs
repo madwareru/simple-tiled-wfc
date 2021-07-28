@@ -95,6 +95,7 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct WfcModule<TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
