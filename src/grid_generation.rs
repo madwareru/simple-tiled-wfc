@@ -7,7 +7,7 @@ use {
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, make_one_bit_entry, errors::WfcError, BitsIterator}
 };
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::Mutex;
 
 struct NeighbourQueryResult {
@@ -178,7 +178,7 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     entropy_heuristic: TEntropyHeuristic,
     entropy_choice_heuristic: TEntropyChoiceHeuristic,
     buckets: Vec<Vec<usize>>,
-    history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
+    history_transmitter: Option<SyncSender<Mutex<(usize, TBitSet)>>>
 }
 
 impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
@@ -196,7 +196,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         height: usize,
         entropy_heuristic: TEntropyHeuristic,
         entropy_choice_heuristic: TEntropyChoiceHeuristic,
-        history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
+        history_transmitter: Option<SyncSender<Mutex<(usize, TBitSet)>>>
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
@@ -231,7 +231,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         entropy_heuristic: TEntropyHeuristic,
         entropy_choice_heuristic: TEntropyChoiceHeuristic,
         collapse: &[usize],
-        history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
+        history_transmitter: Option<SyncSender<Mutex<(usize, TBitSet)>>>
     ) -> Self {
         assert_eq!(collapse.len(), width * height);
 
@@ -262,13 +262,13 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         row: usize,
         column: usize,
         module: usize,
-        result_transmitter: Sender<Result<Vec<usize>, WfcError>>
+        result_transmitter: SyncSender<Result<Vec<usize>, WfcError>>
     ) {
         let idx = row * self.width + column;
         let value = make_one_bit_entry(module);
         self.set(idx, value);
 
-        let (tx, rc) = channel();
+        let (tx, rc) = sync_channel(1024);
 
         let mut tier = Vec::new();
         let mut tier_probabilities: Vec<TBitSet> = Vec::new();
@@ -453,7 +453,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
     pub fn collapse(
         &mut self,
         max_contradictions: i32,
-        result_transmitter: Sender<Result<Vec<usize>, WfcError>>
+        result_transmitter: SyncSender<Result<Vec<usize>, WfcError>>
     ) {
         let mut contradictions_allowed = max_contradictions;
         let old_grid = self.grid.clone();
