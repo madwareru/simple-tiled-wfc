@@ -178,7 +178,7 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     entropy_heuristic: TEntropyHeuristic,
     entropy_choice_heuristic: TEntropyChoiceHeuristic,
     buckets: Vec<Vec<usize>>,
-    history_transmitter: Option<Sender<(usize, Mutex<TBitSet>)>>
+    history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
 }
 
 impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
@@ -196,7 +196,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         height: usize,
         entropy_heuristic: TEntropyHeuristic,
         entropy_choice_heuristic: TEntropyChoiceHeuristic,
-        history_transmitter: Option<Sender<(usize, Mutex<TBitSet>)>>
+        history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
@@ -204,7 +204,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         for idx in 0..(width * height) {
             buckets[modules.len()].push(idx);
             if let Some(sender) = &history_transmitter {
-                sender.send((idx, Mutex::new(initial_probabilities))).unwrap();
+                sender.send(Mutex::new((idx, initial_probabilities))).unwrap();
             }
             grid.push(initial_probabilities);
         }
@@ -231,7 +231,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         entropy_heuristic: TEntropyHeuristic,
         entropy_choice_heuristic: TEntropyChoiceHeuristic,
         collapse: &[usize],
-        history_transmitter: Option<Sender<(usize, Mutex<TBitSet>)>>
+        history_transmitter: Option<Sender<Mutex<(usize, TBitSet)>>>
     ) -> Self {
         assert_eq!(collapse.len(), width * height);
 
@@ -415,7 +415,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             self.buckets[self.modules.len()].push(idx);
             self.grid[idx] = initial_probabilities;
             if let Some(sender) = &self.history_transmitter {
-                sender.send((idx, Mutex::new(initial_probabilities))).unwrap();
+                sender.send(Mutex::new((idx, initial_probabilities))).unwrap();
             }
         }
     }
@@ -438,7 +438,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.buckets[new_bits_set].push(idx);
         self.grid[idx] = value;
         if let Some(sender) = &self.history_transmitter {
-            sender.send((idx, Mutex::new(value))).unwrap();
+            sender.send(Mutex::new((idx, value))).unwrap();
         }
     }
 
@@ -496,7 +496,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             for i in 0..self.grid.len() {
                 self.grid[i] = old_grid[i];
                 if let Some(sender) = &self.history_transmitter {
-                    sender.send((i, Mutex::new(old_grid[i]))).unwrap();
+                    sender.send(Mutex::new((i, old_grid[i]))).unwrap();
                 }
             }
             self.buckets = old_buckets.clone();
@@ -591,7 +591,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         let new_slot = make_one_bit_entry(next_bit);
         self.grid[slot_id] = new_slot;
         if let Some(sender) = &self.history_transmitter {
-            sender.send((slot_id, Mutex::new(new_slot))).unwrap();
+            sender.send(Mutex::new((slot_id, new_slot))).unwrap();
         }
         self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
         self.buckets[1].push(slot_id);
