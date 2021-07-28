@@ -1,3 +1,4 @@
 pub enum WfcError {
-    TooManyContradictions
+    TooManyContradictions,
+    SomeCreepyShit
 }

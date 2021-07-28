@@ -7,6 +7,7 @@ use {
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, make_one_bit_entry, errors::WfcError, BitsIterator}
 };
+use std::sync::mpsc::{Sender, channel};
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -175,7 +176,7 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     entropy_heuristic: TEntropyHeuristic,
     entropy_choice_heuristic: TEntropyChoiceHeuristic,
     buckets: Vec<Vec<usize>>,
-    history: VecDeque<(usize, TBitSet)>
+    history_transmitter: Option<Sender<(usize, TBitSet)>>
 }
 
 impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
@@ -192,15 +193,17 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         width: usize,
         height: usize,
         entropy_heuristic: TEntropyHeuristic,
-        entropy_choice_heuristic: TEntropyChoiceHeuristic
+        entropy_choice_heuristic: TEntropyChoiceHeuristic,
+        history_transmitter: Option<Sender<(usize, TBitSet)>>
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
         let initial_probabilities = make_initial_probabilities(modules);
-        let mut history = VecDeque::new();
         for idx in 0..(width * height) {
             buckets[modules.len()].push(idx);
-            history.push_back((idx, initial_probabilities));
+            if let Some(sender) = &history_transmitter {
+                sender.send((idx, initial_probabilities)).unwrap();
+            }
             grid.push(initial_probabilities);
         }
         Self {
@@ -215,7 +218,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history
+            history_transmitter
         }
     }
 
@@ -225,13 +228,13 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         height: usize,
         entropy_heuristic: TEntropyHeuristic,
         entropy_choice_heuristic: TEntropyChoiceHeuristic,
-        collapse: &[usize]
+        collapse: &[usize],
+        history_transmitter: Option<Sender<(usize, TBitSet)>>
     ) -> Self {
         assert_eq!(collapse.len(), width * height);
 
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
-        let mut history = VecDeque::new();
         for idx in 0..(width * height) {
             buckets[1].push(idx);
             grid.push(make_one_bit_entry(collapse[idx]));
@@ -248,7 +251,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             entropy_heuristic,
             entropy_choice_heuristic,
             buckets,
-            history
+            history_transmitter
         }
     }
 
@@ -256,11 +259,14 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         &mut self,
         row: usize,
         column: usize,
-        module: usize
-    ) -> Result<Vec<usize>, WfcError> {
+        module: usize,
+        result_transmitter: Sender<Result<Vec<usize>, WfcError>>
+    ) {
         let idx = row * self.width + column;
         let value = make_one_bit_entry(module);
         self.set(idx, value);
+
+        let (tx, rc) = channel();
 
         let mut tier = Vec::new();
         let mut tier_probabilities: Vec<TBitSet> = Vec::new();
@@ -286,8 +292,19 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
         }
 
-        let result = self.collapse(10);
-        if result.is_ok() { return result }
+        self.collapse(10, tx.clone());
+        match rc.recv() {
+            Ok(res) => {
+                if res.is_ok() {
+                    result_transmitter.send(res).unwrap();
+                    return;
+                }
+            }
+            Err(_) => {
+                result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
+                return;
+            }
+        }
 
         for _ in 0..30 {
             let mut next_tier = Vec::new();
@@ -318,11 +335,22 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
             tier = next_tier;
 
-            let result = self.collapse(10);
-            if result.is_ok() { return result }
+            self.collapse(10, tx.clone());
+            match rc.recv() {
+                Ok(res) => {
+                    if res.is_ok() {
+                        result_transmitter.send(res).unwrap();
+                        return;
+                    }
+                }
+                Err(_) => {
+                    result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
+                    return;
+                }
+            }
         }
 
-        Err(WfcError::TooManyContradictions)
+        result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
     }
 
     fn propagate_backward(&mut self, id: usize, probs: &mut Vec<TBitSet>) {
@@ -384,7 +412,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         for idx in 0..(self.width * self.height) {
             self.buckets[self.modules.len()].push(idx);
             self.grid[idx] = initial_probabilities;
-            self.history.push_back((idx, initial_probabilities));
+            if let Some(sender) = &self.history_transmitter {
+                sender.send((idx, initial_probabilities)).unwrap();
+            }
         }
     }
 
@@ -405,7 +435,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         self.buckets[new_bits_set].push(idx);
         self.grid[idx] = value;
-        self.history.push_back((idx, value));
+        if let Some(sender) = &self.history_transmitter {
+            sender.send((idx, value)).unwrap();
+        }
     }
 
     pub fn set_module(&mut self, row: usize, column: usize, module: usize) {
@@ -416,7 +448,11 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.propagate(&mut propagation_queue);
     }
 
-    pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
+    pub fn collapse(
+        &mut self,
+        max_contradictions: i32,
+        result_transmitter: Sender<Result<Vec<usize>, WfcError>>
+    ) {
         let mut contradictions_allowed = max_contradictions;
         let old_grid = self.grid.clone();
         let old_buckets = self.buckets.clone();
@@ -435,10 +471,12 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     }
                 }
                 if min_bucket_id == 1 {
-                    return Ok(self.grid
+                    result_transmitter.send(Ok(self.grid
                         .iter()
                         .map(|it| it.find_first_set(0).unwrap())
-                        .collect()); // We are done!
+                        .collect()
+                    )).unwrap();
+                    return; // We are done!
                 }
 
                 // II. Choose random slot with a minimum probability set and collapse it's
@@ -455,7 +493,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             // at the beginning. The propagation queue need to be flushed too obviously
             for i in 0..self.grid.len() {
                 self.grid[i] = old_grid[i];
-                self.history.push_back((i, old_grid[i]));
+                if let Some(sender) = &self.history_transmitter {
+                    sender.send((i, old_grid[i])).unwrap();
+                }
             }
             self.buckets = old_buckets.clone();
             propagation_queue.clear();
@@ -466,11 +506,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
             contradictions_allowed -= 1;
         }
-        Err(WfcError::TooManyContradictions)
-    }
-
-    pub fn become_history(self) -> VecDeque<(usize, TBitSet)> {
-        self.history
+        result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
     }
 
     fn get_neighbours(&self, idx: usize) -> NeighbourQueryResult {
@@ -552,7 +588,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         );
         let new_slot = make_one_bit_entry(next_bit);
         self.grid[slot_id] = new_slot;
-        self.history.push_back((slot_id, new_slot));
+        if let Some(sender) = &self.history_transmitter {
+            sender.send((slot_id, new_slot)).unwrap();
+        }
         self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
         self.buckets[1].push(slot_id);
         propagation_queue.push_back(slot_id);
