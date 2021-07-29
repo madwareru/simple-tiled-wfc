@@ -264,19 +264,19 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         result_transmitter: Sender<Result<Vec<usize>, WfcError>>
     ) {
         let idx = row * self.width + column;
-        let value = make_one_bit_entry(module);
-        self.set(idx, value);
+        //let value = make_one_bit_entry(module);
+        self.set_module(row, column, module);
 
         let (tx, rc) = channel();
 
-        let mut tier = Vec::new();
-        let mut tier_probabilities: Vec<TBitSet> = Vec::new();
-        self.propagate_neighbour_tier(idx, &mut tier);
-        for &id in tier.iter() {
-            if id != idx {
-                self.set(id, make_initial_probabilities(self.modules));
-            }
-        }
+        //let mut tier = Vec::new();
+        //let mut tier_probabilities: Vec<TBitSet> = Vec::new();
+        // self.propagate_neighbour_tier(idx, &mut tier);
+        // for &id in tier.iter() {
+        //     if id != idx {
+        //         self.set(id, make_initial_probabilities(self.modules));
+        //     }
+        // }
         // for _ in 0..16 {
         //     // we are trying multiple awful stuff to make our thing look better :)
         //     // here we have some kind of convolution and we are trying to make it in clear phases
@@ -307,49 +307,49 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
         }
 
-        for _ in 0..30 {
-            let mut next_tier = Vec::new();
-            let mut tier_probabilities: Vec<TBitSet> = Vec::new();
-            for &prev_id in tier.iter() {
-                next_tier.push(prev_id);
-                self.propagate_neighbour_tier(prev_id, &mut next_tier);
-            }
-            for &id in next_tier.iter() {
-                if id != idx {
-                    self.set(id, make_initial_probabilities(self.modules));
-                }
-            }
-            // for _ in 0..16 {
-            //     // we are trying multiple awful stuff to make our thing look better :)
-            //     // here we have some kind of convolution and we are trying to make it in clear phases
-            //     tier_probabilities.clear();
-            //     for &id in next_tier.iter() {
-            //         if id != idx {
-            //             self.propagate_backward(id, &mut tier_probabilities);
-            //         } else {
-            //             tier_probabilities.push(value)
-            //         }
-            //     }
-            //     for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
-            //         self.set(id, prob);
-            //     }
-            // }
-            tier = next_tier;
-
-            self.collapse(100, tx.clone());
-            match rc.recv() {
-                Ok(res) => {
-                    if res.is_ok() {
-                        result_transmitter.send(res).unwrap();
-                        return;
-                    }
-                }
-                Err(_) => {
-                    result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
-                    return;
-                }
-            }
-        }
+        // for _ in 0..30 {
+        //     let mut next_tier = Vec::new();
+        //     let mut tier_probabilities: Vec<TBitSet> = Vec::new();
+        //     for &prev_id in tier.iter() {
+        //         next_tier.push(prev_id);
+        //         self.propagate_neighbour_tier(prev_id, &mut next_tier);
+        //     }
+        //     for &id in next_tier.iter() {
+        //         if id != idx {
+        //             self.set(id, make_initial_probabilities(self.modules));
+        //         }
+        //     }
+        //     // for _ in 0..16 {
+        //     //     // we are trying multiple awful stuff to make our thing look better :)
+        //     //     // here we have some kind of convolution and we are trying to make it in clear phases
+        //     //     tier_probabilities.clear();
+        //     //     for &id in next_tier.iter() {
+        //     //         if id != idx {
+        //     //             self.propagate_backward(id, &mut tier_probabilities);
+        //     //         } else {
+        //     //             tier_probabilities.push(value)
+        //     //         }
+        //     //     }
+        //     //     for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
+        //     //         self.set(id, prob);
+        //     //     }
+        //     // }
+        //     tier = next_tier;
+        //
+        //     self.collapse(100, tx.clone());
+        //     match rc.recv() {
+        //         Ok(res) => {
+        //             if res.is_ok() {
+        //                 result_transmitter.send(res).unwrap();
+        //                 return;
+        //             }
+        //         }
+        //         Err(_) => {
+        //             result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
+        //             return;
+        //         }
+        //     }
+        // }
 
         result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
     }
