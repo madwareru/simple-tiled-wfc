@@ -277,7 +277,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for _ in 0..128 {
+        for _ in 0..4 {
             // we are trying multiple awful stuff to make our thing look better :)
             // here we have some kind of convolution and we are trying to make it in clear phases
             tier_probabilities.clear();
@@ -293,7 +293,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
         }
 
-        self.collapse(40, tx.clone());
+        self.collapse(3, tx.clone());
         match rc.recv() {
             Ok(res) => {
                 if res.is_ok() {
@@ -319,7 +319,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     self.set(id, make_initial_probabilities(self.modules));
                 }
             }
-            for _ in 0..128 {
+            for _ in 0..4 {
                 // we are trying multiple awful stuff to make our thing look better :)
                 // here we have some kind of convolution and we are trying to make it in clear phases
                 tier_probabilities.clear();
@@ -336,7 +336,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
             tier = next_tier;
 
-            self.collapse(100, tx.clone());
+            self.collapse(3, tx.clone());
             match rc.recv() {
                 Ok(res) => {
                     if res.is_ok() {
