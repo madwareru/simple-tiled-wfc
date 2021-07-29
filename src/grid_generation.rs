@@ -293,7 +293,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
         }
 
-        self.collapse(10, tx.clone());
+        self.collapse(40, tx.clone());
         match rc.recv() {
             Ok(res) => {
                 if res.is_ok() {
@@ -336,7 +336,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             }
             tier = next_tier;
 
-            self.collapse(10, tx.clone());
+            self.collapse(100, tx.clone());
             match rc.recv() {
                 Ok(res) => {
                     if res.is_ok() {
