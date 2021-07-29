@@ -277,21 +277,21 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 self.set(id, make_initial_probabilities(self.modules));
             }
         }
-        for _ in 0..16 {
-            // we are trying multiple awful stuff to make our thing look better :)
-            // here we have some kind of convolution and we are trying to make it in clear phases
-            tier_probabilities.clear();
-            for &id in tier.iter() {
-                if id != idx {
-                    self.propagate_backward(id, &mut tier_probabilities);
-                } else {
-                    tier_probabilities.push(value)
-                }
-            }
-            for (&id, &prob) in tier.iter().zip(tier_probabilities.iter()) {
-                self.set(id, prob);
-            }
-        }
+        // for _ in 0..16 {
+        //     // we are trying multiple awful stuff to make our thing look better :)
+        //     // here we have some kind of convolution and we are trying to make it in clear phases
+        //     tier_probabilities.clear();
+        //     for &id in tier.iter() {
+        //         if id != idx {
+        //             self.propagate_backward(id, &mut tier_probabilities);
+        //         } else {
+        //             tier_probabilities.push(value)
+        //         }
+        //     }
+        //     for (&id, &prob) in tier.iter().zip(tier_probabilities.iter()) {
+        //         self.set(id, prob);
+        //     }
+        // }
 
         self.collapse(40, tx.clone());
         match rc.recv() {
@@ -319,21 +319,21 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     self.set(id, make_initial_probabilities(self.modules));
                 }
             }
-            for _ in 0..16 {
-                // we are trying multiple awful stuff to make our thing look better :)
-                // here we have some kind of convolution and we are trying to make it in clear phases
-                tier_probabilities.clear();
-                for &id in next_tier.iter() {
-                    if id != idx {
-                        self.propagate_backward(id, &mut tier_probabilities);
-                    } else {
-                        tier_probabilities.push(value)
-                    }
-                }
-                for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
-                    self.set(id, prob);
-                }
-            }
+            // for _ in 0..16 {
+            //     // we are trying multiple awful stuff to make our thing look better :)
+            //     // here we have some kind of convolution and we are trying to make it in clear phases
+            //     tier_probabilities.clear();
+            //     for &id in next_tier.iter() {
+            //         if id != idx {
+            //             self.propagate_backward(id, &mut tier_probabilities);
+            //         } else {
+            //             tier_probabilities.push(value)
+            //         }
+            //     }
+            //     for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
+            //         self.set(id, prob);
+            //     }
+            // }
             tier = next_tier;
 
             self.collapse(100, tx.clone());
