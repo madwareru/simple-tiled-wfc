@@ -66,7 +66,7 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
         column: usize,
         modules: &[WfcModule<TBitSet>],
         slot_bits: &TBitSet,
-    ) -> usize;
+    ) -> Option<usize>;
 }
 
 #[derive(Default)]
@@ -86,12 +86,12 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
         _column: usize,
         _modules: &[WfcModule<TBitSet>],
         slot_bits: &TBitSet
-    ) -> usize
+    ) -> Option<usize>
     {
         let mut rng = thread_rng();
         let random_bit_id = rng.gen_range(0, get_bits_set_count(slot_bits));
         let mut iterator = BitsIterator::new(slot_bits);
-        iterator.nth(random_bit_id).unwrap()
+        Some(iterator.nth(random_bit_id).unwrap())
     }
 }
 
@@ -483,7 +483,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 // II. Choose random slot with a minimum probability set and collapse it's
                 // set to just one module
                 //println!("collapse no {}", collapse_no);
-                self.collapse_next_slot(&mut propagation_queue, min_bucket_id);
+                if self.collapse_next_slot(&mut propagation_queue, min_bucket_id).is_none() {
+                    break 'backtrack; // couldn't find next slot to collapse, need to backtrack
+                }
 
                 // III. While propagation queue is not empty, propagate probability set to neighbours
                 // If neighbour's probability set is changed, add its index to a propagation queue
@@ -571,7 +573,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         &mut self,
         propagation_queue: &mut VecDeque<usize>,
         min_bucket_id: usize
-    ) {
+    ) -> Option<TBitSet> {
         let next_slot_id_in_bucket = self.entropy_heuristic.choose_next_collapsed_slot(
             self.width,
             self.height,
@@ -586,7 +588,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
             slot_id % self.width,
             self.modules,
             &self.grid[slot_id]
-        );
+        )?;
         let new_slot = make_one_bit_entry(next_bit);
         self.grid[slot_id] = new_slot;
         if let Some(sender) = &self.history_transmitter {
@@ -595,6 +597,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         self.buckets[min_bucket_id].remove(next_slot_id_in_bucket);
         self.buckets[1].push(slot_id);
         propagation_queue.push_back(slot_id);
+        Some(new_slot)
     }
 
     fn east_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
