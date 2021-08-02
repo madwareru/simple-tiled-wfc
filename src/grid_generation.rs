@@ -263,10 +263,16 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 self.width,
                 self.height
             );
+        println!("{}..={}, {}..={}",
+            hor_range_dest.start(),
+            hor_range_dest.end(),
+            vert_range_dest.start(),
+            vert_range_dest.end()
+        );
 
         let (v_zip, h_zip) = (
-            vert_range_dest.zip(vert_range_source),
-            hor_range_dest.zip(hor_range_source)
+            vert_range_dest.clone().zip(vert_range_source),
+            hor_range_dest.clone().zip(hor_range_source)
         );
 
         let lookup = &(DRAW_LOOKUP[0]);
