@@ -273,9 +273,11 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         for (j_dest, j_source) in v_zip.clone() {
             for (i_dest, i_source) in h_zip.clone() {
+                println!("iter {}, {}", j_source, i_source);
                 if lookup.test(j_source * 16 + i_source) {
                     continue;
                 }
+                println!("draw {}, {}", j_source, i_source);
 
                 let mut probability_set = initial_probabilities;
                 let idx = j_dest * self.width + i_dest;
