@@ -1,8 +1,12 @@
-use bitsetium::{BitSearch, BitSet, BitEmpty};
+use bitsetium::{BitSearch, BitSet, BitEmpty, BitIntersection, BitUnion, BitTestNone};
+use std::hash::Hash;
 
 pub mod errors;
 pub mod grid_generation;
 pub mod voxel_generation;
+mod grid_drawing;
+
+pub type B256 = [u8; 32];
 
 pub struct BitsIterator<'a, T: BitSearch>  {
     iterated: &'a T,
@@ -40,4 +44,21 @@ pub fn make_one_bit_entry<TBitSet: BitEmpty+BitSet>(bit: usize) -> TBitSet {
     let mut slot = TBitSet::empty();
     slot.set(bit);
     slot
+}
+
+pub fn make_initial_probabilities<TBitSet>(size: usize) -> TBitSet
+    where TBitSet:
+    BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+    BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+    BitUnion<Output = TBitSet>
+{
+    (0..size)
+        .fold(
+            TBitSet::empty(),
+            |acc, module_id| {
+                let mut acc = acc;
+                acc.set(module_id);
+                acc
+            }
+        )
 }

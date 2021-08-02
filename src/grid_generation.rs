@@ -8,6 +8,9 @@ use {
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, make_one_bit_entry, errors::WfcError, BitsIterator}
 };
+use crate::make_initial_probabilities;
+use crate::grid_drawing::{get_brush_ranges, DRAW_LOOKUP};
+use bitsetium::BitTest;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -140,23 +143,6 @@ impl<TBitSet> WfcModule<TBitSet>
     }
 }
 
-fn make_initial_probabilities<TBitSet>(modules: &[WfcModule<TBitSet>]) -> TBitSet
-    where TBitSet:
-    BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
-    BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-    BitUnion<Output = TBitSet>
-{
-    (0..modules.len())
-        .fold(
-            TBitSet::empty(),
-            |acc, module_id| {
-                let mut acc = acc;
-                acc.set(module_id);
-                acc
-            }
-        )
-}
-
 pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, TEntropyChoiceHeuristic = DefaultEntropyChoiceHeuristic>
     where
     TBitSet:
@@ -199,7 +185,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
-        let initial_probabilities = make_initial_probabilities(modules);
+        let initial_probabilities = make_initial_probabilities(modules.len());
         for idx in 0..(width * height) {
             buckets[modules.len()].push(idx);
             if let Some(sender) = &history_transmitter {
@@ -263,80 +249,76 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         module: usize,
         result_transmitter: Sender<Result<Vec<usize>, WfcError>>
     ) {
-        let idx = row * self.width + column;
-        let value = make_one_bit_entry(module);
-        self.set(idx, value);
+        let old_grid = self.grid.clone();
+        let old_buckets = self.buckets.clone();
 
-        let (tx, rc) = channel();
+        let initial_probabilities: TBitSet = make_initial_probabilities(self.modules.len());
 
-        let mut tier = Vec::new();
-        let mut tier_probabilities: Vec<TBitSet> = Vec::new();
-        self.propagate_neighbour_tier(idx, &mut tier);
-        for &id in tier.iter() {
-            if id != idx {
-                self.set(id, make_initial_probabilities(self.modules));
-            }
-        }
-        for _ in 0..4 {
-            // we are trying multiple awful stuff to make our thing look better :)
-            // here we have some kind of convolution and we are trying to make it in clear phases
-            tier_probabilities.clear();
-            for &id in tier.iter() {
-                if id != idx {
-                    self.propagate_backward(id, &mut tier_probabilities);
-                } else {
-                    tier_probabilities.push(value)
-                }
-            }
-            for (&id, &prob) in tier.iter().zip(tier_probabilities.iter()) {
-                self.set(id, prob);
-            }
-        }
+        for brush_id in 0..6 {
+            let (hor_range_dest, vert_range_dest, hor_range_source, vert_range_source) =
+                get_brush_ranges(
+                    row,
+                    column,
+                    6,
+                    self.width,
+                    self.height
+                );
 
-        self.collapse(3, tx.clone());
-        match rc.recv() {
-            Ok(res) => {
-                if res.is_ok() {
-                    result_transmitter.send(res).unwrap();
-                    return;
-                }
-            }
-            Err(_) => {
-                result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
-                return;
-            }
-        }
-
-        for _ in 0..30 {
-            let mut next_tier = Vec::new();
-            let mut tier_probabilities: Vec<TBitSet> = Vec::new();
-            for &prev_id in tier.iter() {
-                next_tier.push(prev_id);
-                self.propagate_neighbour_tier(prev_id, &mut next_tier);
-            }
-            for &id in next_tier.iter() {
-                if id != idx {
-                    self.set(id, make_initial_probabilities(self.modules));
-                }
-            }
-            for _ in 0..4 {
-                // we are trying multiple awful stuff to make our thing look better :)
-                // here we have some kind of convolution and we are trying to make it in clear phases
-                tier_probabilities.clear();
-                for &id in next_tier.iter() {
-                    if id != idx {
-                        self.propagate_backward(id, &mut tier_probabilities);
-                    } else {
-                        tier_probabilities.push(value)
+            if brush_id > 0 {
+                // backtrack
+                self.buckets = old_buckets.clone();
+                for j in vert_range_dest.clone() {
+                    for i in hor_range_dest.clone() {
+                        self.grid[j * self.width + i] = old_grid[j * self.width + i];
+                        self.buckets = old_buckets.clone();
                     }
                 }
-                for (&id, &prob) in next_tier.iter().zip(tier_probabilities.iter()) {
-                    self.set(id, prob);
+            }
+
+            let (v_zip, h_zip) = (
+                vert_range_dest.zip(vert_range_source),
+                hor_range_dest.zip(hor_range_source)
+            );
+
+            let lookup = &(DRAW_LOOKUP[brush_id]);
+
+            for (j_dest, j_source) in v_zip.clone() {
+                for (i_dest, i_source) in h_zip.clone() {
+                    let neighbours = self.get_neighbours(j_dest * self.width + i_dest);
+                    let mut probability_set = initial_probabilities;
+                    if neighbours.north.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+                        let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
+                        probability_set = probability_set.intersection(
+                            self.south_neighbours(&north_neighbour_slot)
+                        );
+                    }
+                    if neighbours.south.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+                        let south_neighbour_slot = self.grid[neighbours.south.unwrap()];
+                        probability_set = probability_set.intersection(
+                            self.north_neighbours(&south_neighbour_slot)
+                        );
+                    }
+                    if neighbours.east.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+                        let east_neighbour_slot = self.grid[neighbours.east.unwrap()];
+                        probability_set = probability_set.intersection(
+                            self.west_neighbours(&east_neighbour_slot)
+                        );
+                    }
+                    if neighbours.west.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+                        let west_neighbour_slot = self.grid[neighbours.west.unwrap()];
+                        probability_set = probability_set.intersection(
+                            self.east_neighbours(&west_neighbour_slot)
+                        );
+                    }
+                    self.set(j_dest * self.width + i_dest, probability_set);
                 }
             }
-            tier = next_tier;
+            self.set_module(row, column, module);
 
-            self.collapse(3, tx.clone());
+            let (tx, rc) = channel();
+
+            self.collapse(10, tx.clone());
+
             match rc.recv() {
                 Ok(res) => {
                     if res.is_ok() {
@@ -350,54 +332,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 }
             }
         }
-
         result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
-    }
-
-    fn propagate_backward(&mut self, id: usize, probs: &mut Vec<TBitSet>) {
-        let mut probability_set = make_initial_probabilities(self.modules);
-        let nbr_ids = self.get_neighbours(id);
-        if let Some(west_neighbour) = nbr_ids.west {
-            let west_neighbour = self.grid[west_neighbour];
-            probability_set = probability_set.intersection(self.east_neighbours(&west_neighbour));
-        }
-        if let Some(east_neighbour) = nbr_ids.east {
-            let east_neighbour = self.grid[east_neighbour];
-            probability_set = probability_set.intersection(self.west_neighbours(&east_neighbour));
-        }
-        if let Some(north_neighbour) = nbr_ids.north {
-            let north_neighbour = self.grid[north_neighbour];
-            probability_set = probability_set.intersection(self.south_neighbours(&north_neighbour));
-        }
-        if let Some(south_neighbour) = nbr_ids.south {
-            let south_neighbour = self.grid[south_neighbour];
-            probability_set = probability_set.intersection(self.north_neighbours(&south_neighbour));
-        }
-        probs.push(probability_set);
-    }
-
-    fn propagate_neighbour_tier(&mut self, idx: usize, neighbour_tier: &mut Vec<usize>) {
-        let neighbours = self.get_neighbours(idx);
-        if let Some(west_neighbour) = neighbours.west {
-            if !neighbour_tier.iter().any(|it| *it == west_neighbour) {
-                neighbour_tier.push(west_neighbour);
-            }
-        }
-        if let Some(east_neighbour) = neighbours.east {
-            if !neighbour_tier.iter().any(|it| *it == east_neighbour) {
-                neighbour_tier.push(east_neighbour);
-            }
-        }
-        if let Some(north_neighbour) = neighbours.north {
-            if !neighbour_tier.iter().any(|it| *it == north_neighbour) {
-                neighbour_tier.push(north_neighbour);
-            }
-        }
-        if let Some(south_neighbour) = neighbours.south {
-            if !neighbour_tier.iter().any(|it| *it == south_neighbour) {
-                neighbour_tier.push(south_neighbour);
-            }
-        }
     }
 
     pub fn reset(&mut self) {
@@ -409,7 +344,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         for bucket in self.buckets.iter_mut() {
             bucket.clear();
         }
-        let initial_probabilities = make_initial_probabilities(self.modules);
+        let initial_probabilities = make_initial_probabilities(self.modules.len());
         for idx in 0..(self.width * self.height) {
             self.buckets[self.modules.len()].push(idx);
             self.grid[idx] = initial_probabilities;
@@ -542,7 +477,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
     }
 
     fn propagate_slot(&mut self, propagation_queue: &mut VecDeque<usize>, neighbour_id: usize) {
-        let mut probability_set = make_initial_probabilities(self.modules);
+        let mut probability_set: TBitSet = make_initial_probabilities(self.modules.len());
         let nbr_ids = self.get_neighbours(neighbour_id);
         if let Some(west_neighbour) = nbr_ids.west {
             let west_neighbour = self.grid[west_neighbour];

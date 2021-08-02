@@ -4,6 +4,7 @@ use {
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
     crate::{get_bits_set_count, errors::WfcError, BitsIterator}
 };
+use crate::make_initial_probabilities;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -53,23 +54,6 @@ impl<TBitSet> WfcModule<TBitSet>
     pub fn add_bottom_neighbour(&mut self, idx: usize) { self.bottom_neighbours.set(idx) }
 }
 
-fn make_initial_probabilities<TBitSet>(modules: &[WfcModule<TBitSet>]) -> TBitSet
-    where TBitSet:
-    BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
-    BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-    BitUnion<Output = TBitSet>
-{
-    (0..modules.len())
-        .fold(
-            TBitSet::empty(),
-            |acc, module_id| {
-                let mut acc = acc;
-                acc.set(module_id);
-                acc
-            }
-        )
-}
-
 pub struct WfcContext<'a, TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
@@ -104,7 +88,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
     ) -> Self {
         let mut voxels: Vec<TBitSet> = Vec::new();
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
-        let initial_probabilities = make_initial_probabilities(modules);
+        let initial_probabilities = make_initial_probabilities(modules.len());
         for idx in 0..(x_size * z_size * y_size) {
             buckets[modules.len()].push(idx);
             voxels.push(initial_probabilities);
@@ -136,7 +120,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         for bucket in self.buckets.iter_mut() {
             bucket.clear();
         }
-        let initial_probabilities = make_initial_probabilities(self.modules);
+        let initial_probabilities = make_initial_probabilities(self.modules.len());
         for idx in 0..(self.x_size * self.z_size * self.y_size ) {
             self.buckets[self.modules.len()].push(idx);
             self.voxels[idx] = initial_probabilities;
@@ -384,7 +368,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         self.slice_size() * height + self.row_size() * row + column
     }
     fn propagate_slot(&mut self, propagation_queue: &mut &mut VecDeque<usize>, neighbour_id: usize) {
-        let mut probability_set = make_initial_probabilities(self.modules);
+        let mut probability_set: TBitSet = make_initial_probabilities(self.modules.len());
         let nbr_ids = self.get_neighbours(neighbour_id);
         if let Some(west_neighbour) = nbr_ids.west {
             let west_neighbour = self.voxels[west_neighbour];
