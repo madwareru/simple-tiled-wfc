@@ -253,7 +253,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         let initial_probabilities: TBitSet = make_initial_probabilities(self.modules.len());
 
-        for brush_id in 0..7 {
+        for brush_id in 0..6 {
             // for test just draw a cross and exit
             let (hor_range_dest, vert_range_dest, hor_range_source, vert_range_source) =
                 get_brush_ranges(
@@ -292,28 +292,24 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                     let neighbours = self.get_neighbours(idx);
 
                     if neighbours.north.is_some() && lookup[(j_source - 1) * 15 + i_source] == 1 {
-                        println!("north");
                         let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
                         probability_set = probability_set.intersection(
                             self.south_neighbours(&north_neighbour_slot)
                         );
                     }
                     if neighbours.south.is_some() && lookup[(j_source + 1) * 15 + i_source] == 1 {
-                        println!("south");
                         let south_neighbour_slot = self.grid[neighbours.south.unwrap()];
                         probability_set = probability_set.intersection(
                             self.north_neighbours(&south_neighbour_slot)
                         );
                     }
                     if neighbours.east.is_some() && lookup[j_source * 15 + i_source + 1] == 1 {
-                        println!("east");
                         let east_neighbour_slot = self.grid[neighbours.east.unwrap()];
                         probability_set = probability_set.intersection(
                             self.west_neighbours(&east_neighbour_slot)
                         );
                     }
                     if neighbours.west.is_some() && lookup[j_source * 15 + i_source - 1] == 1 {
-                        println!("west");
                         let west_neighbour_slot = self.grid[neighbours.west.unwrap()];
                         probability_set = probability_set.intersection(
                             self.east_neighbours(&west_neighbour_slot)
