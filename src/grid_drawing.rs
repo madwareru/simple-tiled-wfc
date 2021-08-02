@@ -137,9 +137,9 @@ pub fn get_brush_ranges(
 ) {
     assert!(width > 0 && height > 0);
     let left = (column_center as i32 - DRAW_RADIUS_OFFSETS[brush_id] as i32).max(0) as usize;
-    let right = column_center + DRAW_RADIUS_OFFSETS[brush_id].min(width-1) as usize;
+    let right = (column_center + DRAW_RADIUS_OFFSETS[brush_id]).min(width-1) as usize;
     let top = (row_center as i32 - DRAW_RADIUS_OFFSETS[brush_id] as i32).max(0) as usize;
-    let bottom = row_center + DRAW_RADIUS_OFFSETS[brush_id].min(height-1) as usize;
+    let bottom = (row_center + DRAW_RADIUS_OFFSETS[brush_id]).min(height-1) as usize;
 
     let (horizontal_range_max, vertical_range_max) = (
         left..=right,
