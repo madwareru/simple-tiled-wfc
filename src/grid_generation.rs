@@ -284,7 +284,9 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
             for (j_dest, j_source) in v_zip.clone() {
                 for (i_dest, i_source) in h_zip.clone() {
-                    let neighbours = self.get_neighbours(j_dest * self.width + i_dest);
+                    let idx = j_dest * self.width + i_dest;
+                    println!("idx: {}", idx);
+                    let neighbours = self.get_neighbours(idx);
                     let mut probability_set = initial_probabilities;
                     if neighbours.north.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
                         let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
@@ -310,7 +312,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                             self.east_neighbours(&west_neighbour_slot)
                         );
                     }
-                    self.set(j_dest * self.width + i_dest, probability_set);
+                    self.set(idx, probability_set);
                 }
             }
             self.set_module(row, column, module);
