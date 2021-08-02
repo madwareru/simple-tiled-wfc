@@ -259,7 +259,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 get_brush_ranges(
                     row,
                     column,
-                    6,
+                    brush_id,
                     self.width,
                     self.height
                 );

@@ -155,15 +155,15 @@ pub fn get_brush_ranges(
         top..=bottom
     );
 
-    let local_left = CENTRAL_ID - (column_center - horizontal_range_max.start());
-    let local_right = CENTRAL_ID + horizontal_range_max.end() - column_center;
-    let local_top = CENTRAL_ID - (row_center - vertical_range_max.start());
-    let local_bottom = CENTRAL_ID + vertical_range_max.end() - row_center;
+    let local_left = CENTRAL_ID as i32 - (column_center as i32 - *horizontal_range_max.start() as i32);
+    let local_right = CENTRAL_ID as i32 + *horizontal_range_max.end() as i32 - column_center as i32;
+    let local_top = CENTRAL_ID as i32 - (row_center as i32 - *vertical_range_max.start() as i32);
+    let local_bottom = CENTRAL_ID as i32 + *vertical_range_max.end() as i32 - row_center as i32;
 
     (
         horizontal_range_max,
         vertical_range_max,
-        local_left..=local_right,
-        local_top..=local_bottom
+        local_left as usize..=local_right as usize,
+        local_top as usize..=local_bottom as usize
     )
 }
