@@ -6,8 +6,6 @@ pub mod grid_generation;
 pub mod voxel_generation;
 mod grid_drawing;
 
-pub type B256 = [u8; 32];
-
 pub struct BitsIterator<'a, T: BitSearch>  {
     iterated: &'a T,
     idx: usize

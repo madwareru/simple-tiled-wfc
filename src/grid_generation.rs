@@ -274,7 +274,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         for (j_dest, j_source) in v_zip.clone() {
             for (i_dest, i_source) in h_zip.clone() {
                 println!("iter {}, {}", j_source, i_source);
-                if lookup.test(j_source * 16 + i_source) {
+                if lookup[j_source * 16 + i_source] == 1 {
                     continue;
                 }
                 println!("draw {}, {}", j_source, i_source);
