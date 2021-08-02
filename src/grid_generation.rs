@@ -273,6 +273,10 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         for (j_dest, j_source) in v_zip.clone() {
             for (i_dest, i_source) in h_zip.clone() {
+                if lookup.test(j_source * 16 + i_source) {
+                    continue;
+                }
+
                 let idx = j_dest * self.width + i_dest;
                 println!("idx: {}", idx);
                 let neighbours = self.get_neighbours(idx);
