@@ -165,6 +165,24 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     history_transmitter: Option<Sender<(usize, TBitSet)>>
 }
 
+macro_rules! neighbour_func_impl {
+    ($func_name:ident of $memo_name:ident and $neighbours_member:ident) => {
+        fn $func_name(&mut self, module_variants: &TBitSet) -> TBitSet {
+            self.$memo_name
+                .get(module_variants)
+                .map(|it| *it)
+                .unwrap_or_else(|| {
+                    let mut set = TBitSet::empty();
+                    for module_id in BitsIterator::new(module_variants) {
+                        set = set.union(self.modules[module_id].$neighbours_member);
+                    }
+                    self.$memo_name.insert(module_variants.clone(), set);
+                    set
+                })
+        }
+    }
+}
+
 impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
     where
     TBitSet:
@@ -337,13 +355,7 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
                 }
             }
         }
-
         result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
-        // result_transmitter.send(Ok(self.grid
-        //     .iter()
-        //     .map(|it| it.find_first_set(0).unwrap())
-        //     .collect()
-        // )).unwrap();
     }
 
     pub fn reset(&mut self) {
@@ -546,59 +558,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         Some(new_slot)
     }
 
-    fn east_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
-        self.east_memoizer
-            .get(module_variants)
-            .map(|it| *it)
-            .unwrap_or_else(|| {
-                let mut set = TBitSet::empty();
-                for module_id in BitsIterator::new(module_variants) {
-                    set = set.union(self.modules[module_id].east_neighbours);
-                }
-                self.east_memoizer.insert(module_variants.clone(), set);
-                set
-            })
-    }
-    fn west_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
-        match self.west_memoizer.get(module_variants) {
-            Some(v) => v.clone(),
-            None => {
-                let iterator = BitsIterator::new(module_variants);
-                let mut set = TBitSet::empty();
-                for module_id in iterator {
-                    set = set.union(self.modules[module_id].west_neighbours);
-                }
-                self.west_memoizer.insert(module_variants.clone(), set);
-                set
-            }
-        }
-    }
-    fn north_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
-        match self.north_memoizer.get(module_variants) {
-            Some(v) => v.clone(),
-            None => {
-                let iterator = BitsIterator::new(module_variants);
-                let mut set = TBitSet::empty();
-                for module_id in iterator {
-                    set = set.union(self.modules[module_id].north_neighbours);
-                }
-                self.north_memoizer.insert(module_variants.clone(), set);
-                set
-            }
-        }
-    }
-    fn south_neighbours(&mut self, module_variants: &TBitSet) -> TBitSet {
-        match self.south_memoizer.get(module_variants) {
-            Some(v) => v.clone(),
-            None => {
-                let iterator = BitsIterator::new(module_variants);
-                let mut set = TBitSet::empty();
-                for module_id in iterator {
-                    set = set.union(self.modules[module_id].south_neighbours);
-                }
-                self.south_memoizer.insert(module_variants.clone(), set);
-                set
-            }
-        }
-    }
+    neighbour_func_impl!{ east_neighbours of east_memoizer and east_neighbours }
+    neighbour_func_impl!{ west_neighbours of west_memoizer and west_neighbours }
+    neighbour_func_impl!{ north_neighbours of north_memoizer and north_neighbours }
+    neighbour_func_impl!{ south_neighbours of south_memoizer and south_neighbours }
 }
