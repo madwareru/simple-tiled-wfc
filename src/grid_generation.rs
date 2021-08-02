@@ -254,91 +254,156 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
 
         let initial_probabilities: TBitSet = make_initial_probabilities(self.modules.len());
 
-        for brush_id in 0..6 {
-            let (hor_range_dest, vert_range_dest, hor_range_source, vert_range_source) =
-                get_brush_ranges(
-                    row,
-                    column,
-                    brush_id,
-                    self.width,
-                    self.height
-                );
-
-            if brush_id > 0 {
-                // backtrack
-                self.buckets = old_buckets.clone();
-                for j in vert_range_dest.clone() {
-                    for i in hor_range_dest.clone() {
-                        self.grid[j * self.width + i] = old_grid[j * self.width + i];
-                        self.buckets = old_buckets.clone();
-                    }
-                }
-            }
-
-            let (v_zip, h_zip) = (
-                vert_range_dest.zip(vert_range_source),
-                hor_range_dest.zip(hor_range_source)
+        // for test just draw a cross and exit
+        let (hor_range_dest, vert_range_dest, hor_range_source, vert_range_source) =
+            get_brush_ranges(
+                row,
+                column,
+                0,
+                self.width,
+                self.height
             );
 
-            let lookup = &(DRAW_LOOKUP[brush_id]);
+        let (v_zip, h_zip) = (
+            vert_range_dest.zip(vert_range_source),
+            hor_range_dest.zip(hor_range_source)
+        );
 
-            for (j_dest, j_source) in v_zip.clone() {
-                for (i_dest, i_source) in h_zip.clone() {
-                    let idx = j_dest * self.width + i_dest;
-                    println!("idx: {}", idx);
-                    let neighbours = self.get_neighbours(idx);
-                    let mut probability_set = initial_probabilities;
-                    if neighbours.north.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
-                        println!("north");
-                        let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
-                        probability_set = probability_set.intersection(
-                            self.south_neighbours(&north_neighbour_slot)
-                        );
-                    }
-                    if neighbours.south.is_some() && lookup.test((j_source + 1) * 16 + i_source) {
-                        println!("south");
-                        let south_neighbour_slot = self.grid[neighbours.south.unwrap()];
-                        probability_set = probability_set.intersection(
-                            self.north_neighbours(&south_neighbour_slot)
-                        );
-                    }
-                    if neighbours.east.is_some() && lookup.test(j_source * 16 + i_source + 1) {
-                        println!("east");
-                        let east_neighbour_slot = self.grid[neighbours.east.unwrap()];
-                        probability_set = probability_set.intersection(
-                            self.west_neighbours(&east_neighbour_slot)
-                        );
-                    }
-                    if neighbours.west.is_some() && lookup.test(j_source * 16 + i_source - 1) {
-                        println!("west");
-                        let west_neighbour_slot = self.grid[neighbours.west.unwrap()];
-                        probability_set = probability_set.intersection(
-                            self.east_neighbours(&west_neighbour_slot)
-                        );
-                    }
-                    self.set(idx, probability_set);
+        let lookup = &(DRAW_LOOKUP[0]);
+
+        for (j_dest, j_source) in v_zip.clone() {
+            for (i_dest, i_source) in h_zip.clone() {
+                let idx = j_dest * self.width + i_dest;
+                println!("idx: {}", idx);
+                let neighbours = self.get_neighbours(idx);
+                let mut probability_set = initial_probabilities;
+                if neighbours.north.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+                    println!("north");
+                    let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
+                    probability_set = probability_set.intersection(
+                        self.south_neighbours(&north_neighbour_slot)
+                    );
                 }
-            }
-            self.set_module(row, column, module);
-
-            let (tx, rc) = channel();
-
-            self.collapse(10, tx.clone());
-
-            match rc.recv() {
-                Ok(res) => {
-                    if res.is_ok() {
-                        result_transmitter.send(res).unwrap();
-                        return;
-                    }
+                if neighbours.south.is_some() && lookup.test((j_source + 1) * 16 + i_source) {
+                    println!("south");
+                    let south_neighbour_slot = self.grid[neighbours.south.unwrap()];
+                    probability_set = probability_set.intersection(
+                        self.north_neighbours(&south_neighbour_slot)
+                    );
                 }
-                Err(_) => {
-                    result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
-                    return;
+                if neighbours.east.is_some() && lookup.test(j_source * 16 + i_source + 1) {
+                    println!("east");
+                    let east_neighbour_slot = self.grid[neighbours.east.unwrap()];
+                    probability_set = probability_set.intersection(
+                        self.west_neighbours(&east_neighbour_slot)
+                    );
                 }
+                if neighbours.west.is_some() && lookup.test(j_source * 16 + i_source - 1) {
+                    println!("west");
+                    let west_neighbour_slot = self.grid[neighbours.west.unwrap()];
+                    probability_set = probability_set.intersection(
+                        self.east_neighbours(&west_neighbour_slot)
+                    );
+                }
+                self.set(idx, probability_set);
             }
         }
-        result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
+        self.set_module(row, column, module);
+
+        result_transmitter.send(Ok(self.grid
+            .iter()
+            .map(|it| it.find_first_set(0).unwrap())
+            .collect()
+        )).unwrap();
+
+        //
+        // let initial_probabilities: TBitSet = make_initial_probabilities(self.modules.len());
+        //
+        // for brush_id in 0..6 {
+        //     let (hor_range_dest, vert_range_dest, hor_range_source, vert_range_source) =
+        //         get_brush_ranges(
+        //             row,
+        //             column,
+        //             brush_id,
+        //             self.width,
+        //             self.height
+        //         );
+        //
+        //     if brush_id > 0 {
+        //         // backtrack
+        //         self.buckets = old_buckets.clone();
+        //         for j in vert_range_dest.clone() {
+        //             for i in hor_range_dest.clone() {
+        //                 self.grid[j * self.width + i] = old_grid[j * self.width + i];
+        //                 self.buckets = old_buckets.clone();
+        //             }
+        //         }
+        //     }
+        //
+        //     let (v_zip, h_zip) = (
+        //         vert_range_dest.zip(vert_range_source),
+        //         hor_range_dest.zip(hor_range_source)
+        //     );
+        //
+        //     let lookup = &(DRAW_LOOKUP[brush_id]);
+        //
+        //     for (j_dest, j_source) in v_zip.clone() {
+        //         for (i_dest, i_source) in h_zip.clone() {
+        //             let idx = j_dest * self.width + i_dest;
+        //             println!("idx: {}", idx);
+        //             let neighbours = self.get_neighbours(idx);
+        //             let mut probability_set = initial_probabilities;
+        //             if neighbours.north.is_some() && lookup.test((j_source - 1) * 16 + i_source) {
+        //                 println!("north");
+        //                 let north_neighbour_slot = self.grid[neighbours.north.unwrap()];
+        //                 probability_set = probability_set.intersection(
+        //                     self.south_neighbours(&north_neighbour_slot)
+        //                 );
+        //             }
+        //             if neighbours.south.is_some() && lookup.test((j_source + 1) * 16 + i_source) {
+        //                 println!("south");
+        //                 let south_neighbour_slot = self.grid[neighbours.south.unwrap()];
+        //                 probability_set = probability_set.intersection(
+        //                     self.north_neighbours(&south_neighbour_slot)
+        //                 );
+        //             }
+        //             if neighbours.east.is_some() && lookup.test(j_source * 16 + i_source + 1) {
+        //                 println!("east");
+        //                 let east_neighbour_slot = self.grid[neighbours.east.unwrap()];
+        //                 probability_set = probability_set.intersection(
+        //                     self.west_neighbours(&east_neighbour_slot)
+        //                 );
+        //             }
+        //             if neighbours.west.is_some() && lookup.test(j_source * 16 + i_source - 1) {
+        //                 println!("west");
+        //                 let west_neighbour_slot = self.grid[neighbours.west.unwrap()];
+        //                 probability_set = probability_set.intersection(
+        //                     self.east_neighbours(&west_neighbour_slot)
+        //                 );
+        //             }
+        //             self.set(idx, probability_set);
+        //         }
+        //     }
+        //     self.set_module(row, column, module);
+        //
+        //     let (tx, rc) = channel();
+        //
+        //     self.collapse(10, tx.clone());
+        //
+        //     match rc.recv() {
+        //         Ok(res) => {
+        //             if res.is_ok() {
+        //                 result_transmitter.send(res).unwrap();
+        //                 return;
+        //             }
+        //         }
+        //         Err(_) => {
+        //             result_transmitter.send(Err(WfcError::SomeCreepyShit)).unwrap();
+        //             return;
+        //         }
+        //     }
+        // }
+        // result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
     }
 
     pub fn reset(&mut self) {
