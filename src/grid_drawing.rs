@@ -1,7 +1,7 @@
-pub const CENTRAL_ID: usize = 7;
-pub const DRAW_RADIUS_OFFSETS: [usize; 7] = [1, 1, 2, 3, 4, 5, 6];
+pub(crate) const CENTRAL_ID: usize = 7;
+pub(crate) const DRAW_RADIUS_OFFSETS: [usize; 7] = [1, 1, 2, 3, 4, 5, 6];
 
-pub const DRAW_LOOKUP: [[u8; 225]; 6] = [
+pub(crate) const DRAW_LOOKUP: [[u8; 225]; 6] = [
     [
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -106,7 +106,7 @@ pub const DRAW_LOOKUP: [[u8; 225]; 6] = [
     ]
 ];
 
-pub fn get_brush_ranges(
+pub(crate) fn get_brush_ranges(
     row_center: usize,
     column_center: usize,
     brush_id:usize,

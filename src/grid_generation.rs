@@ -23,12 +23,14 @@ struct NeighbourQueryResult {
     west: Option<usize>,
 }
 
+/// A trait which lets a user to define exact heuristic on how minimal entropy slot should be chosen
 pub trait WfcEntropyHeuristic<TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
     BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// A function which lets a user to define exact heuristic on how minimal entropy slot should be chosen
     fn choose_next_collapsed_slot(
         &self,
         width: usize,
@@ -39,7 +41,7 @@ pub trait WfcEntropyHeuristic<TBitSet>
 }
 
 #[derive(Default)]
-pub struct DefaultEntropyHeuristic;
+struct DefaultEntropyHeuristic;
 impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
@@ -57,12 +59,16 @@ impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
     }
 }
 
+/// A trait which lets a user to define exact heuristic on how to chose a variant from a
+/// probability set inside a slot
 pub trait WfcEntropyChoiceHeuristic<TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
     BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// A function which lets a user to define exact heuristic on how to chose a variant from a
+    /// probability set inside a slot
     fn choose_least_entropy_bit(
         &self,
         width: usize,
@@ -75,7 +81,7 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
 }
 
 #[derive(Default)]
-pub struct DefaultEntropyChoiceHeuristic;
+struct DefaultEntropyChoiceHeuristic;
 impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
@@ -98,16 +104,27 @@ impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeurist
     }
 }
 
+/// A building block of WFC, which lets user to set adjacency rules for tiles
+///
+/// Each **neighbours** bitset are expected to hold indices of neighbour modules which will be
+/// hold in a &[WfcModule] used by **WfcContext**
 #[derive(Copy, Clone)]
 pub struct WfcModule<TBitSet>
     where TBitSet:
-    BitSearch + BitEmpty + BitSet + BitIntersection +
-    BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-    BitUnion<Output = TBitSet>
+        BitSearch + BitEmpty + BitSet + BitIntersection +
+        BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>
 {
+    /// North neighbouring modules
     pub north_neighbours: TBitSet,
+
+    /// South neighbouring modules
     pub south_neighbours: TBitSet,
+
+    /// East neighbouring modules
     pub east_neighbours: TBitSet,
+
+    /// West neighbouring modules
     pub west_neighbours: TBitSet,
 }
 
@@ -117,6 +134,7 @@ impl<TBitSet> WfcModule<TBitSet>
     BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// A constructor of a module with all neighbouring sets empty
     pub fn new() -> Self {
         Self {
             north_neighbours: TBitSet::empty(),
@@ -126,35 +144,46 @@ impl<TBitSet> WfcModule<TBitSet>
         }
     }
 
+    /// A function which adds a neighbour on a north side
     pub fn add_north_neighbour(&mut self, idx: usize) {
         self.north_neighbours.set(idx)
     }
 
+    /// A function which adds a neighbour on a south side
     pub fn add_south_neighbour(&mut self, idx: usize) {
         self.south_neighbours.set(idx)
     }
 
+    /// A function which adds a neighbour on an east side
     pub fn add_east_neighbour(&mut self, idx: usize) {
         self.east_neighbours.set(idx)
     }
 
+    /// A function which adds a neighbour on a west side
     pub fn add_west_neighbour(&mut self, idx: usize) {
         self.west_neighbours.set(idx)
     }
 }
 
-enum WfcContextBuilderExtra<'a> {
+enum WfcContextBuilderExtra<'a, TBitSet>
+    where TBitSet:
+        BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+        BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>
+{
     General,
+    UsingCustomInitializer { initializer: Box<dyn Fn(usize, usize) -> TBitSet>},
     FromExisting { collapse: &'a [usize] }
 }
 
+/// A builder with a fluent API to create WfcContext
 pub struct WfcContextBuilder<'a, TBitSet>
     where TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
         BitUnion<Output = TBitSet>
 {
-    extra: WfcContextBuilderExtra<'a>,
+    extra: WfcContextBuilderExtra<'a, TBitSet>,
     modules: &'a [WfcModule<TBitSet>],
     width: usize,
     height: usize,
@@ -169,6 +198,7 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
         BitUnion<Output = TBitSet>
 {
+    /// A constructor with minimally needed info to construct a context
     pub fn new(modules: &'a [WfcModule<TBitSet>], width: usize, height: usize) -> Self {
         Self {
             extra: WfcContextBuilderExtra::General,
@@ -181,6 +211,9 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         }
     }
 
+    /// A function which lets user to start collapse using a result of an other.
+    /// **collapse** here holds indices of modules which have been chosen for each slot of a grid
+    /// last time
     pub fn use_existing_collapse(self, collapse: &'a [usize]) -> Self {
         Self {
             extra: WfcContextBuilderExtra::FromExisting { collapse },
@@ -188,6 +221,17 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         }
     }
 
+    /// A function which lets user to override default initialization of slots.
+    /// This could be useful when user wants different sets of tiles be possible on different
+    /// places of a grid
+    pub fn use_custom_initializer(self, initializer: Box<dyn Fn(usize, usize) -> TBitSet>) -> Self {
+        Self {
+            extra: WfcContextBuilderExtra::UsingCustomInitializer { initializer },
+            ..self
+        }
+    }
+
+    /// A function which lets a user to set its own implementation of WfcEntropyHeuristic
     pub fn with_entropy_heuristic(
         self,
         heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>
@@ -198,6 +242,7 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         }
     }
 
+    /// A function which lets a user to set its own implementation of WfcEntropyChoiceHeuristic
     pub fn with_entropy_choice_heuristic(
         self,
         heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>
@@ -208,6 +253,8 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         }
     }
 
+    /// A function which lets a user to set a transmitter which will send all steps of an algorithm
+    /// so the user could visualize it in time
     pub fn with_history_transmitter(
         self,
         history_transmitter: Sender<(usize, TBitSet)>
@@ -218,6 +265,7 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
         }
     }
 
+    /// A function which builds a context
     pub fn build(self) -> WfcContext<'a, TBitSet> {
         match self.extra {
             WfcContextBuilderExtra::General => {
@@ -227,6 +275,7 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
                     self.height,
                     self.entropy_heuristic,
                     self.entropy_choice_heuristic,
+                    None,
                     self.history_transmitter
                 )
             }
@@ -241,10 +290,22 @@ impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
                     self.history_transmitter
                 )
             }
+            WfcContextBuilderExtra::UsingCustomInitializer { initializer } => {
+                WfcContext::new(
+                    self.modules,
+                    self.width,
+                    self.height,
+                    self.entropy_heuristic,
+                    self.entropy_choice_heuristic,
+                    Some(initializer),
+                    self.history_transmitter
+                )
+            }
         }
     }
 }
 
+/// A heart of WFC. Does an actual collapse work
 pub struct WfcContext<'a, TBitSet>
     where TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
@@ -295,6 +356,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         height: usize,
         entropy_heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>,
         entropy_choice_heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>,
+        initializer: Option<Box<dyn Fn(usize, usize) -> TBitSet>>,
         history_transmitter: Option<Sender<(usize, TBitSet)>>
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
@@ -305,7 +367,13 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             if let Some(sender) = &history_transmitter {
                 sender.send((idx, initial_probabilities)).unwrap();
             }
-            grid.push(initial_probabilities);
+            if let Some(init) = &initializer {
+                let row = idx / width;
+                let col = idx % width;
+                grid.push(init(row, col));
+            } else {
+                grid.push(initial_probabilities);
+            }
         }
         Self {
             modules,
@@ -356,6 +424,13 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         }
     }
 
+    /// A function which lets a user to "draw" some new parts above existing collapse result
+    ///
+    /// When the work is done, the result is being sent through *result_transmitter* to a
+    /// corresponding receiver
+    ///
+    /// The successful result is composed of a vec with a `size = (self.width * self.height)`
+    /// indices of modules which have been chosen of corresponding slots during collapse
     pub fn local_collapse(
         &mut self,
         row: usize,
@@ -455,25 +530,6 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         result_transmitter.send(Err(WfcError::TooManyContradictions)).unwrap();
     }
 
-    pub fn reset(&mut self) {
-        self.north_memoizer.clear();
-        self.south_memoizer.clear();
-        self.east_memoizer.clear();
-        self.west_memoizer.clear();
-
-        for bucket in self.buckets.iter_mut() {
-            bucket.clear();
-        }
-        let initial_probabilities = make_initial_probabilities(self.modules.len());
-        for idx in 0..(self.width * self.height) {
-            self.buckets[self.modules.len()].push(idx);
-            self.grid[idx] = initial_probabilities;
-            if let Some(sender) = &self.history_transmitter {
-                sender.send((idx, initial_probabilities)).unwrap();
-            }
-        }
-    }
-
     fn set(&mut self, idx: usize, value: TBitSet) {
         let old_v = self.grid[idx];
         let old_bits_set = get_bits_set_count(&old_v);
@@ -496,6 +552,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         }
     }
 
+    /// A function which lets a user to "preset" some modules before doing actual collapse
     pub fn set_module(&mut self, row: usize, column: usize, module: usize) {
         let idx = row * self.width + column;
         self.set(idx, make_one_bit_entry(module));
@@ -504,6 +561,13 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         self.propagate(&mut propagation_queue);
     }
 
+    /// A function which is making actual collapse
+    ///
+    /// When the work is done, the result is being sent through *result_transmitter* to a
+    /// corresponding receiver
+    ///
+    /// The successful result is composed of a vec with a `size = (self.width * self.height)`
+    /// indices of modules which have been chosen of corresponding slots during collapse
     pub fn collapse(
         &mut self,
         max_contradictions: i32,

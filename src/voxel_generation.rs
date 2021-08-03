@@ -2,9 +2,8 @@ use {
     rand::{thread_rng, distributions::Uniform, prelude::{Distribution, ThreadRng}},
     std::{hash::Hash, collections::{HashMap, VecDeque}},
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
-    crate::{get_bits_set_count, errors::WfcError, BitsIterator}
+    crate::{get_bits_set_count, errors::WfcError, BitsIterator, make_initial_probabilities}
 };
-use crate::make_initial_probabilities;
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -15,17 +14,33 @@ struct NeighbourQueryResult {
     bottom: Option<usize>,
 }
 
+/// A building block of WFC, which lets user to set adjacency rules for tiles
+///
+/// Each **neighbours** bitset are expected to hold indices of neighbour modules which will be
+/// hold in a &[WfcModule] used by **WfcContext**
+#[derive(Copy, Clone)]
 pub struct WfcModule<TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
     BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// North neighbouring modules
     pub north_neighbours: TBitSet,
+
+    /// South neighbouring modules
     pub south_neighbours: TBitSet,
+
+    /// East neighbouring modules
     pub east_neighbours: TBitSet,
+
+    /// West neighbouring modules
     pub west_neighbours: TBitSet,
+
+    /// Upper neighbouring modules
     pub upper_neighbours: TBitSet,
+
+    /// Bottom neighbouring modules
     pub bottom_neighbours: TBitSet,
 }
 
@@ -35,6 +50,7 @@ impl<TBitSet> WfcModule<TBitSet>
     BitUnion + BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// A constructor of a module with all neighbouring sets empty
     pub fn new() -> Self {
         Self {
             north_neighbours: TBitSet::empty(),
@@ -46,14 +62,26 @@ impl<TBitSet> WfcModule<TBitSet>
         }
     }
 
+    /// A function which adds a neighbour on a north side
     pub fn add_north_neighbour(&mut self, idx: usize) { self.north_neighbours.set(idx) }
+
+    /// A function which adds a neighbour on a south side
     pub fn add_south_neighbour(&mut self, idx: usize) { self.south_neighbours.set(idx) }
+
+    /// A function which adds a neighbour on an east side
     pub fn add_east_neighbour(&mut self, idx: usize) { self.east_neighbours.set(idx) }
+
+    /// A function which adds a neighbour on a west side
     pub fn add_west_neighbour(&mut self, idx: usize) { self.west_neighbours.set(idx) }
+
+    /// A function which adds a neighbour on an upper side
     pub fn add_upper_neighbour(&mut self, idx: usize) { self.upper_neighbours.set(idx) }
+
+    /// A function which adds a neighbour on a bottom side
     pub fn add_bottom_neighbour(&mut self, idx: usize) { self.bottom_neighbours.set(idx) }
 }
 
+/// A heart of WFC. Does an actual collapse work
 pub struct WfcContext<'a, TBitSet>
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
@@ -80,6 +108,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
     BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
     BitUnion<Output = TBitSet>
 {
+    /// A constructor for WfcContext
     pub fn new(
         modules: &'a [WfcModule<TBitSet>],
         x_size: usize,
@@ -109,24 +138,6 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         }
     }
 
-    pub fn reset(&mut self) {
-        self.north_memoizer.clear();
-        self.south_memoizer.clear();
-        self.east_memoizer.clear();
-        self.west_memoizer.clear();
-        self.upper_memoizer.clear();
-        self.bottom_memoizer.clear();
-
-        for bucket in self.buckets.iter_mut() {
-            bucket.clear();
-        }
-        let initial_probabilities = make_initial_probabilities(self.modules.len());
-        for idx in 0..(self.x_size * self.z_size * self.y_size ) {
-            self.buckets[self.modules.len()].push(idx);
-            self.voxels[idx] = initial_probabilities;
-        }
-    }
-
     fn set(&mut self, idx: usize, value: TBitSet) {
         let old_v = self.voxels[idx];
         let old_bits_set = get_bits_set_count(&old_v);
@@ -146,6 +157,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         self.voxels[idx] = value;
     }
 
+    /// A function which lets a user to "preset" some modules before doing actual collapse
     pub fn set_module(&mut self, height: usize, row: usize, column: usize, module: usize) {
         let idx = self.make_idx(height, row, column);
         let mut value = TBitSet::empty();
@@ -156,6 +168,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         self.propagate(&mut propagation_queue);
     }
 
+    /// A function which is making actual collapse
     pub fn collapse(&mut self, max_contradictions: i32) -> Result<Vec<usize>, WfcError> {
         let mut contradictions_allowed = max_contradictions;
         let old_voxels = self.voxels.clone();

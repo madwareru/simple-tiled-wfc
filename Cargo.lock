@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "simple-tiled-wfc"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "bitsetium",
  "rand",
