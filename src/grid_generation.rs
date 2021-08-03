@@ -6,10 +6,15 @@ use {
         sync::mpsc::{channel, Sender}
     },
     bitsetium::{BitSearch, BitEmpty, BitSet, BitIntersection, BitUnion, BitTestNone},
-    crate::{get_bits_set_count, make_one_bit_entry, errors::WfcError, BitsIterator}
+    crate::{
+        grid_drawing::{get_brush_ranges, DRAW_LOOKUP},
+        get_bits_set_count,
+        make_one_bit_entry,
+        make_initial_probabilities,
+        errors::WfcError,
+        BitsIterator
+    }
 };
-use crate::make_initial_probabilities;
-use crate::grid_drawing::{get_brush_ranges, DRAW_LOOKUP};
 
 struct NeighbourQueryResult {
     north: Option<usize>,
@@ -142,14 +147,12 @@ impl<TBitSet> WfcModule<TBitSet>
     }
 }
 
-pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, TEntropyChoiceHeuristic = DefaultEntropyChoiceHeuristic>
+pub struct WfcContext<'a, TBitSet>
     where
     TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-        BitUnion<Output = TBitSet>,
-    TEntropyHeuristic: WfcEntropyHeuristic<TBitSet>,
-    TEntropyChoiceHeuristic: WfcEntropyChoiceHeuristic<TBitSet>
+        BitUnion<Output = TBitSet>
 {
     modules: &'a [WfcModule<TBitSet>],
     width: usize,
@@ -159,8 +162,8 @@ pub struct WfcContext<'a, TBitSet, TEntropyHeuristic = DefaultEntropyHeuristic, 
     south_memoizer: HashMap<TBitSet, TBitSet>,
     east_memoizer: HashMap<TBitSet, TBitSet>,
     west_memoizer: HashMap<TBitSet, TBitSet>,
-    entropy_heuristic: TEntropyHeuristic,
-    entropy_choice_heuristic: TEntropyChoiceHeuristic,
+    entropy_heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>,
+    entropy_choice_heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>,
     buckets: Vec<Vec<usize>>,
     history_transmitter: Option<Sender<(usize, TBitSet)>>
 }
@@ -183,21 +186,19 @@ macro_rules! neighbour_func_impl {
     }
 }
 
-impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic>
+impl<'a, TBitSet> WfcContext<'a, TBitSet>
     where
     TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
-        BitUnion<Output = TBitSet>,
-    TEntropyHeuristic: WfcEntropyHeuristic<TBitSet>,
-    TEntropyChoiceHeuristic: WfcEntropyChoiceHeuristic<TBitSet>
+        BitUnion<Output = TBitSet>
 {
     pub fn new(
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
-        entropy_heuristic: TEntropyHeuristic,
-        entropy_choice_heuristic: TEntropyChoiceHeuristic,
+        entropy_heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>,
+        entropy_choice_heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>,
         history_transmitter: Option<Sender<(usize, TBitSet)>>
     ) -> Self {
         let mut grid: Vec<TBitSet> = Vec::new();
@@ -230,8 +231,8 @@ impl<'a, TBitSet, TEntropyHeuristic, TEntropyChoiceHeuristic> WfcContext<'a, TBi
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
-        entropy_heuristic: TEntropyHeuristic,
-        entropy_choice_heuristic: TEntropyChoiceHeuristic,
+        entropy_heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>,
+        entropy_choice_heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>,
         collapse: &[usize],
         history_transmitter: Option<Sender<(usize, TBitSet)>>
     ) -> Self {
