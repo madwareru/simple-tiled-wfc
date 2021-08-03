@@ -40,8 +40,11 @@ pub trait WfcEntropyHeuristic<TBitSet>
     ) -> usize;
 }
 
+/// Default WfcEntropyHeuristic used by a library
+///
+/// It just chooses a random slot from a set of slots and does not do anything extra
 #[derive(Default)]
-struct DefaultEntropyHeuristic;
+pub struct DefaultEntropyHeuristic;
 impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
@@ -80,8 +83,11 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
     ) -> Option<usize>;
 }
 
+/// Default WfcEntropyChoiceHeuristic used by a library
+///
+/// It just chooses a random non-zero bit from a bitset and does not do anything extra
 #[derive(Default)]
-struct DefaultEntropyChoiceHeuristic;
+pub struct DefaultEntropyChoiceHeuristic;
 impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
