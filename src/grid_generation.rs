@@ -39,9 +39,7 @@ pub trait WfcEntropyHeuristic<TBitSet>
 }
 
 #[derive(Default)]
-pub struct DefaultEntropyHeuristic {
-    _noop: u8
-}
+pub struct DefaultEntropyHeuristic;
 impl<TBitSet> WfcEntropyHeuristic<TBitSet> for DefaultEntropyHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
@@ -77,9 +75,7 @@ pub trait WfcEntropyChoiceHeuristic<TBitSet>
 }
 
 #[derive(Default)]
-pub struct DefaultEntropyChoiceHeuristic {
-    _noop: u8
-}
+pub struct DefaultEntropyChoiceHeuristic;
 impl<TBitSet> WfcEntropyChoiceHeuristic<TBitSet> for DefaultEntropyChoiceHeuristic
     where TBitSet:
     BitSearch + BitEmpty + BitSet + BitIntersection +
@@ -147,9 +143,110 @@ impl<TBitSet> WfcModule<TBitSet>
     }
 }
 
+enum WfcContextBuilderExtra<'a> {
+    General,
+    FromExisting { collapse: &'a [usize] }
+}
+
+pub struct WfcContextBuilder<'a, TBitSet>
+    where TBitSet:
+        BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+        BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>
+{
+    extra: WfcContextBuilderExtra<'a>,
+    modules: &'a [WfcModule<TBitSet>],
+    width: usize,
+    height: usize,
+    entropy_heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>,
+    entropy_choice_heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>,
+    history_transmitter: Option<Sender<(usize, TBitSet)>>
+}
+
+impl<'a, TBitSet> WfcContextBuilder<'a, TBitSet>
+    where TBitSet:
+        BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
+        BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
+        BitUnion<Output = TBitSet>
+{
+    pub fn new(modules: &'a [WfcModule<TBitSet>], width: usize, height: usize) -> Self {
+        Self {
+            extra: WfcContextBuilderExtra::General,
+            modules,
+            width,
+            height,
+            entropy_heuristic: Box::new(DefaultEntropyHeuristic::default()),
+            entropy_choice_heuristic: Box::new(DefaultEntropyChoiceHeuristic::default()),
+            history_transmitter: None
+        }
+    }
+
+    pub fn use_existing_collapse(self, collapse: &'a [usize]) -> Self {
+        Self {
+            extra: WfcContextBuilderExtra::FromExisting { collapse },
+            ..self
+        }
+    }
+
+    pub fn with_entropy_heuristic(
+        self,
+        heuristic: Box<dyn WfcEntropyHeuristic<TBitSet>>
+    ) -> Self {
+        Self {
+            entropy_heuristic: heuristic,
+            ..self
+        }
+    }
+
+    pub fn with_entropy_choice_heuristic(
+        self,
+        heuristic: Box<dyn WfcEntropyChoiceHeuristic<TBitSet>>
+    ) -> Self {
+        Self {
+            entropy_choice_heuristic: heuristic,
+            ..self
+        }
+    }
+
+    pub fn with_history_transmitter(
+        self,
+        history_transmitter: Sender<(usize, TBitSet)>
+    ) -> Self {
+        Self {
+            history_transmitter: Some(history_transmitter),
+            ..self
+        }
+    }
+
+    pub fn build(self) -> WfcContext<'a, TBitSet> {
+        match self.extra {
+            WfcContextBuilderExtra::General => {
+                WfcContext::new(
+                    self.modules,
+                    self.width,
+                    self.height,
+                    self.entropy_heuristic,
+                    self.entropy_choice_heuristic,
+                    self.history_transmitter
+                )
+            }
+            WfcContextBuilderExtra::FromExisting { collapse } => {
+                WfcContext::from_existing_collapse(
+                    self.modules,
+                    self.width,
+                    self.height,
+                    self.entropy_heuristic,
+                    self.entropy_choice_heuristic,
+                    collapse,
+                    self.history_transmitter
+                )
+            }
+        }
+    }
+}
+
 pub struct WfcContext<'a, TBitSet>
-    where
-    TBitSet:
+    where TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
         BitUnion<Output = TBitSet>
@@ -187,13 +284,12 @@ macro_rules! neighbour_func_impl {
 }
 
 impl<'a, TBitSet> WfcContext<'a, TBitSet>
-    where
-    TBitSet:
+    where TBitSet:
         BitSearch + BitEmpty + BitSet + BitIntersection + BitUnion +
         BitTestNone + Hash + Eq + Copy + BitIntersection<Output = TBitSet> +
         BitUnion<Output = TBitSet>
 {
-    pub fn new(
+    fn new(
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
@@ -227,7 +323,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         }
     }
 
-    pub fn from_existing_collapse(
+    fn from_existing_collapse(
         modules: &'a [WfcModule<TBitSet>],
         width: usize,
         height: usize,
