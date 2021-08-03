@@ -1,11 +1,11 @@
 [package]
 name = "simple-tiled-wfc"
-version = "0.7.4"
+version = "0.7.5"
 authors = ["Vitaly Samotokin <madware.ru@gmail.com>"]
 description = "A simple library which lets a user to use a tiled Wave Function Collapse algorithm implementation"
 edition = "2018"
 license = "MIT"
-categories = ["Wave Function Collapse", "Procedural Generation"]
+categories = ["algorithms", "game-development"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
