@@ -1,0 +1,417 @@
+// The tileset used is a remix of https://opengameart.org/content/dungeon-tileset
+DungeonTiles(
+    tile_width: 8,
+    tile_height: 8,
+    // We have a reduced wang 3-corner tileset plus additional tiles for bridges.
+    // First type of a corner is void and it corresponds to 0.
+    // Second type of a corner is ground and it corresponds to 1.
+    // Third type of a corner is water and it corresponds to 2.
+    //
+    // Generic tiles are mapped as 0bsw_se_nw_ne where sw, se, nw and nw are pair of bits
+    // corresponding to south-west, south-east, north-west and north-east
+    generic_tiles: {
+        // Completely void tile
+        0b00_00_00_00: [
+            SubRect(x: 0, y: 72, width: 2, height: 2)
+        ],
+        // Completely gound tiles
+        0b01_01_01_01: [
+            SubRect(x: 24, y: 8, width: 8, height: 8),
+            SubRect(x: 32, y: 8, width: 8, height: 8),
+            SubRect(x: 40, y: 8, width: 8, height: 8),
+            SubRect(x: 24, y: 16, width: 8, height: 8),
+            SubRect(x: 32, y: 16, width: 8, height: 8),
+            SubRect(x: 40, y: 16, width: 8, height: 8),
+            SubRect(x: 8, y: 24, width: 8, height: 8),
+            SubRect(x: 16, y: 24, width: 8, height: 8),
+            SubRect(x: 24, y: 24, width: 8, height: 8),
+            SubRect(x: 32, y: 24, width: 8, height: 8),
+            SubRect(x: 40, y: 24, width: 8, height: 8),
+            SubRect(x: 8, y: 32, width: 8, height: 8),
+            SubRect(x: 16, y: 32, width: 8, height: 8),
+            SubRect(x: 24, y: 32, width: 8, height: 8),
+            SubRect(x: 32, y: 32, width: 8, height: 8),
+            SubRect(x: 40, y: 32, width: 8, height: 8),
+            SubRect(x: 8, y: 40, width: 8, height: 8),
+            SubRect(x: 16, y: 40, width: 8, height: 8),
+            SubRect(x: 24, y: 40, width: 8, height: 8),
+            SubRect(x: 32, y: 40, width: 8, height: 8),
+            SubRect(x: 40, y: 40, width: 8, height: 8)
+        ],
+        // Completely water tiles
+        0b10_10_10_10: [
+            SubRect(x: 0, y: 80, width: 8, height: 8),
+            SubRect(x: 8, y: 80, width: 8, height: 8),
+            SubRect(x: 16, y: 80, width: 8, height: 8),
+            SubRect(x: 24, y: 80, width: 8, height: 8),
+            SubRect(x: 32, y: 80, width: 8, height: 8),
+            SubRect(x: 40, y: 80, width: 8, height: 8),
+            SubRect(x: 0, y: 88, width: 8, height: 8),
+            SubRect(x: 8, y: 88, width: 8, height: 8),
+            SubRect(x: 16, y: 88, width: 8, height: 8),
+            SubRect(x: 24, y: 88, width: 8, height: 8),
+            SubRect(x: 32, y: 88, width: 8, height: 8),
+            SubRect(x: 40, y: 88, width: 8, height: 8),
+            SubRect(x: 0, y: 96, width: 8, height: 8),
+            SubRect(x: 8, y: 96, width: 8, height: 8),
+            SubRect(x: 16, y: 96, width: 8, height: 8),
+            SubRect(x: 24, y: 96, width: 8, height: 8),
+            SubRect(x: 32, y: 96, width: 8, height: 8),
+            SubRect(x: 40, y: 96, width: 8, height: 8),
+            SubRect(x: 0, y: 104, width: 8, height: 8),
+            SubRect(x: 8, y: 104, width: 8, height: 8),
+            SubRect(x: 16, y: 104, width: 8, height: 8),
+            SubRect(x: 24, y: 104, width: 8, height: 8),
+            SubRect(x: 32, y: 104, width: 8, height: 8),
+            SubRect(x: 40, y: 104, width: 8, height: 8),
+            SubRect(x: 0, y: 112, width: 8, height: 8),
+            SubRect(x: 8, y: 112, width: 8, height: 8),
+            SubRect(x: 16, y: 112, width: 8, height: 8),
+            SubRect(x: 24, y: 112, width: 8, height: 8),
+            SubRect(x: 32, y: 112, width: 8, height: 8),
+            SubRect(x: 40, y: 112, width: 8, height: 8),
+            SubRect(x: 0, y: 120, width: 8, height: 8),
+            SubRect(x: 8, y: 120, width: 8, height: 8),
+            SubRect(x: 16, y: 120, width: 8, height: 8),
+            SubRect(x: 24, y: 120, width: 8, height: 8),
+            SubRect(x: 32, y: 120, width: 8, height: 8),
+            SubRect(x: 40, y: 120, width: 8, height: 8)
+        ],
+        // ground with void in a north
+        0b01_01_00_00: [
+            SubRect(x: 8, y: 0, width: 8, height: 8),
+            SubRect(x: 16, y: 0, width: 8, height: 8),
+            SubRect(x: 24, y: 0, width: 8, height: 8),
+            SubRect(x: 32, y: 0, width: 8, height: 8),
+            SubRect(x: 40, y: 0, width: 8, height: 8),
+        ],
+        // ground with void in a south
+        0b00_00_01_01: [
+            SubRect(x: 8, y: 48, width: 8, height: 16),
+            SubRect(x: 16, y: 48, width: 8, height: 16),
+            SubRect(x: 24, y: 48, width: 8, height: 16),
+            SubRect(x: 32, y: 48, width: 8, height: 16),
+            SubRect(x: 40, y: 48, width: 8, height: 16),
+        ],
+        // ground with void in a west
+        0b00_01_00_01: [
+            SubRect(x: 0, y: 8, width: 8, height: 8),
+            SubRect(x: 0, y: 16, width: 8, height: 8),
+            SubRect(x: 0, y: 24, width: 8, height: 8),
+            SubRect(x: 0, y: 32, width: 8, height: 8),
+            SubRect(x: 0, y: 40, width: 8, height: 8),
+        ],
+        // ground with void in an east
+        0b01_00_01_00: [
+            SubRect(x: 48, y: 8, width: 8, height: 8),
+            SubRect(x: 48, y: 16, width: 8, height: 8),
+            SubRect(x: 48, y: 24, width: 8, height: 8),
+            SubRect(x: 48, y: 32, width: 8, height: 8),
+            SubRect(x: 48, y: 40, width: 8, height: 8),
+        ],
+
+        // ground with void in a north and east
+        0b01_00_00_00: [
+            SubRect(x: 48, y: 0, width: 8, height: 8)
+        ],
+        // ground with void in a north and west
+        0b00_01_00_00: [
+            SubRect(x: 0, y: 0, width: 8, height: 8)
+        ],
+        // ground with void in a south and east
+        0b00_00_01_00: [
+            SubRect(x: 48, y: 48, width: 8, height: 16)
+        ],
+        // ground with void in a south and west
+        0b00_00_00_01: [
+            SubRect(x: 0, y: 48, width: 8, height: 16)
+        ],
+
+        // ground with void in a south-east
+        0b01_00_01_01: [
+            SubRect(x: 8, y: 8, width: 8, height: 16)
+        ],
+        // ground with void in a south-west
+        0b00_01_01_01: [
+            SubRect(x: 16, y: 8, width: 8, height: 16)
+        ],
+        // ground with void in a north-east
+        0b01_01_01_00: [
+            SubRect(x: 8, y: 72, width: 8, height: 8)
+        ],
+        // ground with void in a north-west
+        0b01_01_00_01: [
+            SubRect(x: 16, y: 72, width: 8, height: 8)
+        ],
+
+        // water with ground in a north
+        0b10_10_01_01: [
+            SubRect(x: 64, y: 0, width: 8, height: 8),
+            SubRect(x: 72, y: 0, width: 8, height: 8),
+            SubRect(x: 80, y: 0, width: 8, height: 8),
+            SubRect(x: 88, y: 0, width: 8, height: 8),
+        ],
+        // water with ground in a south
+        0b01_01_10_10: [
+            SubRect(x: 64, y: 40, width: 8, height: 8),
+            SubRect(x: 72, y: 40, width: 8, height: 8),
+            SubRect(x: 80, y: 40, width: 8, height: 8),
+            SubRect(x: 88, y: 40, width: 8, height: 8),
+        ],
+        // water with ground in a west
+        0b01_10_01_10: [
+            SubRect(x: 56, y: 8, width: 8, height: 8),
+            SubRect(x: 56, y: 16, width: 8, height: 8),
+            SubRect(x: 56, y: 24, width: 8, height: 8),
+            SubRect(x: 56, y: 32, width: 8, height: 8),
+        ],
+        // water with ground in an east
+        0b10_01_10_01: [
+            SubRect(x: 96, y: 8, width: 8, height: 8),
+            SubRect(x: 96, y: 16, width: 8, height: 8),
+            SubRect(x: 96, y: 24, width: 8, height: 8),
+            SubRect(x: 96, y: 32, width: 8, height: 8),
+        ],
+
+        // water with ground in a north and east
+        0b10_01_01_01: [
+            SubRect(x: 96, y: 0, width: 8, height: 8)
+        ],
+        // water with ground in a north and west
+        0b01_10_01_01: [
+            SubRect(x: 56, y: 0, width: 8, height: 8)
+        ],
+        // water with ground in a south and east
+        0b01_01_10_01: [
+            SubRect(x: 96, y: 40, width: 8, height: 8)
+        ],
+        // water with ground in a south and west
+        0b01_01_01_10: [
+            SubRect(x: 56, y: 40, width: 8, height: 8)
+        ],
+
+        // water with ground in a south-east
+        0b10_01_10_10: [
+            SubRect(x: 64, y: 8, width: 8, height: 8)
+        ],
+        // water with ground in a south-west
+        0b01_10_10_10: [
+            SubRect(x: 88, y: 8, width: 8, height: 8)
+        ],
+        // water with ground in a north-east
+        0b10_10_10_01: [
+            SubRect(x: 64, y: 32, width: 8, height: 8)
+        ],
+        // water with ground in a north-west
+        0b10_10_01_10: [
+            SubRect(x: 88, y: 32, width: 8, height: 8)
+        ],
+    },
+    bridge_tiles: [
+        // VerticalBridgeGroundVoid
+        Tile(
+            kind: VerticalBridgeGroundVoid0x0,
+            subrects: [SubRect(x: 56, y: 48, width: 8, height: 16)],
+            neighbours_east: [VerticalBridgeGroundVoid0x1],
+            neighbours_west: [Generic(0b00_00_01_01), Generic(0b00_00_00_01)],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeGroundVoid1x0],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid0x1,
+            subrects: [SubRect(x: 64, y: 48, width: 8, height: 16)],
+            neighbours_east: [VerticalBridgeGroundVoid0x2],
+            neighbours_west: [VerticalBridgeGroundVoid0x0],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeGroundVoid1x1],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid0x2,
+            subrects: [SubRect(x: 72, y: 48, width: 8, height: 16)],
+            neighbours_east: [Generic(0b00_00_01_01), Generic(0b00_00_01_00)],
+            neighbours_west: [VerticalBridgeGroundVoid0x1],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeGroundVoid1x2],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid1x0,
+            subrects: [SubRect(x: 56, y: 72, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeGroundVoid1x1],
+            neighbours_west: [
+                Generic(0b01_00_01_00),
+                Generic(0b00_00_01_00),
+                Generic(0b00_00_01_00),
+                Generic(0b00_00_00_00)
+            ],
+            neighbours_north: [VerticalBridgeGroundVoid0x0],
+            neighbours_south: [VerticalBridgeGroundVoid2x0],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid1x1,
+            subrects: [SubRect(x: 64, y: 72, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeGroundVoid1x2],
+            neighbours_west: [VerticalBridgeGroundVoid1x0],
+            neighbours_north: [VerticalBridgeGroundVoid0x1],
+            neighbours_south: [VerticalBridgeGroundVoid2x1],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid1x2,
+            subrects: [SubRect(x: 72, y: 72, width: 8, height: 8)],
+            neighbours_east: [
+                Generic(0b00_01_00_01),
+                Generic(0b00_00_00_01),
+                Generic(0b00_01_00_00),
+                Generic(0b00_00_00_00)
+            ],
+            neighbours_west: [VerticalBridgeGroundVoid1x1],
+            neighbours_north: [VerticalBridgeGroundVoid0x2],
+            neighbours_south: [VerticalBridgeGroundVoid2x2],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid2x0,
+            subrects: [SubRect(x: 56, y: 80, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeGroundVoid2x1],
+            neighbours_west: [Generic(0b01_01_00_00), Generic(0b00_01_00_00)],
+            neighbours_north: [VerticalBridgeGroundVoid1x0],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid2x1,
+            subrects: [SubRect(x: 64, y: 80, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeGroundVoid2x2],
+            neighbours_west: [VerticalBridgeGroundVoid2x0],
+            neighbours_north: [VerticalBridgeGroundVoid1x1],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+        Tile(
+            kind: VerticalBridgeGroundVoid2x2,
+            subrects: [SubRect(x: 72, y: 80, width: 8, height: 8)],
+            neighbours_east: [Generic(0b01_01_00_00), Generic(0b01_00_00_00)],
+            neighbours_west: [VerticalBridgeGroundVoid2x1],
+            neighbours_north: [VerticalBridgeGroundVoid1x2],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+
+        // VerticalBridgeWaterGround
+        Tile(
+            kind: VerticalBridgeWaterGround0x0,
+            subrects: [SubRect(x: 80, y: 48, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround0x1],
+            neighbours_west: [Generic(0b10_10_01_01), Generic(0b10_10_10_01)],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeWaterGround1x0],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround0x1,
+            subrects: [SubRect(x: 88, y: 48, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround0x2],
+            neighbours_west: [VerticalBridgeWaterGround0x0],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeWaterGround1x1],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround0x2,
+            subrects: [SubRect(x: 96, y: 48, width: 8, height: 8)],
+            neighbours_east: [Generic(0b10_10_01_01), Generic(0b10_10_01_10)],
+            neighbours_west: [VerticalBridgeWaterGround0x1],
+            neighbours_north: [
+                Generic(0b01_01_01_01),
+            ],
+            neighbours_south: [VerticalBridgeWaterGround1x2],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround1x0,
+            subrects: [SubRect(x: 80, y: 56, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround1x1],
+            neighbours_west: [
+                Generic(0b10_10_10_10)
+            ],
+            neighbours_north: [VerticalBridgeWaterGround0x0],
+            neighbours_south: [VerticalBridgeWaterGround2x0],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround1x1,
+            subrects: [SubRect(x: 88, y: 56, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround1x2],
+            neighbours_west: [VerticalBridgeWaterGround1x0],
+            neighbours_north: [VerticalBridgeWaterGround0x1],
+            neighbours_south: [VerticalBridgeWaterGround2x1],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround1x2,
+            subrects: [SubRect(x: 96, y: 56, width: 8, height: 8)],
+            neighbours_east: [
+                Generic(0b10_10_10_10)
+            ],
+            neighbours_west: [VerticalBridgeWaterGround1x1],
+            neighbours_north: [VerticalBridgeWaterGround0x2],
+            neighbours_south: [VerticalBridgeWaterGround2x2],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround2x0,
+            subrects: [SubRect(x: 80, y: 64, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround2x1],
+            neighbours_west: [Generic(0b01_01_10_10), Generic(0b10_01_10_10)],
+            neighbours_north: [VerticalBridgeWaterGround1x0],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround2x1,
+            subrects: [SubRect(x: 88, y: 64, width: 8, height: 8)],
+            neighbours_east: [VerticalBridgeWaterGround2x2],
+            neighbours_west: [VerticalBridgeWaterGround2x0],
+            neighbours_north: [VerticalBridgeWaterGround1x1],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+        Tile(
+            kind: VerticalBridgeWaterGround2x2,
+            subrects: [SubRect(x: 96, y: 64, width: 8, height: 8)],
+            neighbours_east: [Generic(0b01_01_10_10), Generic(0b01_10_10_10)],
+            neighbours_west: [VerticalBridgeWaterGround2x1],
+            neighbours_north: [VerticalBridgeWaterGround1x2],
+            neighbours_south: [
+                Generic(0b01_01_01_01),
+            ],
+        ),
+
+        // todo: HorizontalBridgeGroundVoid0x0
+        // todo: HorizontalBridgeGroundVoid0x1
+        // todo: HorizontalBridgeGroundVoid0x2
+        // todo: HorizontalBridgeGroundVoid1x0
+        // todo: HorizontalBridgeGroundVoid1x1
+        // todo: HorizontalBridgeGroundVoid1x2
+        // todo: HorizontalBridgeGroundVoid2x0
+        // todo: HorizontalBridgeGroundVoid2x1
+        // todo: HorizontalBridgeGroundVoid2x2
+
+        // todo: HorizontalBridgeWaterGround0x0
+        // todo: HorizontalBridgeWaterGround0x1
+        // todo: HorizontalBridgeWaterGround0x2
+        // todo: HorizontalBridgeWaterGround1x0
+        // todo: HorizontalBridgeWaterGround1x1
+        // todo: HorizontalBridgeWaterGround1x2
+        // todo: HorizontalBridgeWaterGround2x0
+        // todo: HorizontalBridgeWaterGround2x1
+        // todo: HorizontalBridgeWaterGround2x2
+    ]
+)

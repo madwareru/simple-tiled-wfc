@@ -369,16 +369,18 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
         let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); modules.len()+1];
         let initial_probabilities = make_initial_probabilities(modules.len());
         for idx in 0..(width * height) {
-            buckets[modules.len()].push(idx);
             if let Some(sender) = &history_transmitter {
                 sender.send((idx, initial_probabilities)).unwrap();
             }
             if let Some(init) = &initializer {
                 let row = idx / width;
                 let col = idx % width;
-                grid.push(init(row, col));
+                let value = init(row, col);
+                buckets[get_bits_set_count(&value)].push(idx);
+                grid.push(value);
             } else {
                 grid.push(initial_probabilities);
+                buckets[modules.len()].push(idx);
             }
         }
         Self {
@@ -607,7 +609,6 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
 
                 // II. Choose random slot with a minimum probability set and collapse it's
                 // set to just one module
-                //println!("collapse no {}", collapse_no);
                 if self.collapse_next_slot(&mut propagation_queue, min_bucket_id).is_none() {
                     break 'backtrack; // couldn't find next slot to collapse, need to backtrack
                 }
@@ -618,7 +619,7 @@ impl<'a, TBitSet> WfcContext<'a, TBitSet>
             }
 
             // In the case of backtrack we need to bring the state of a grid back to what it was
-            // at the beginning. The propagation queue need to be flushed too obviously
+            // at the beginning. The propagation queue need to be flushed too, obviously
             for i in 0..self.grid.len() {
                 self.grid[i] = old_grid[i];
                 if let Some(sender) = &self.history_transmitter {

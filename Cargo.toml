@@ -1,6 +1,6 @@
 [package]
 name = "simple-tiled-wfc"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Vitaly Samotokin <madware.ru@gmail.com>"]
 description = "A simple library which lets a user to use a tiled Wave Function Collapse algorithm implementation"
 edition = "2018"
@@ -12,3 +12,7 @@ categories = ["algorithms", "game-development"]
 [dependencies]
 bitsetium = "0.0.0"
 rand = "0.7"
+macroquad = "0.3.8"
+serde = { version = "1.0", features = ["derive"] }
+ron = "0.6.4"
+image = "0.23.14"
