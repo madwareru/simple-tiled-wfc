@@ -26,7 +26,11 @@ mod serialization {
 
     #[derive(Debug, Deserialize, PartialEq, Eq, Clone, Copy)]
     pub enum TileKind {
-        Generic(u8),
+        Wang4Corner(u8), // It is named as Wang4Corner,
+                         // but you don't have to provide all
+                         // four types of corners as well as
+                         // exhaustive sets are not required
+                         // (while still possible)
         VerticalBridgeGroundVoid0x0,
         VerticalBridgeGroundVoid0x1,
         VerticalBridgeGroundVoid0x2,
@@ -45,6 +49,24 @@ mod serialization {
         VerticalBridgeWaterGround2x0,
         VerticalBridgeWaterGround2x1,
         VerticalBridgeWaterGround2x2,
+        HorizontalBridgeGroundVoid0x0,
+        HorizontalBridgeGroundVoid0x1,
+        HorizontalBridgeGroundVoid0x2,
+        HorizontalBridgeGroundVoid1x0,
+        HorizontalBridgeGroundVoid1x1,
+        HorizontalBridgeGroundVoid1x2,
+        HorizontalBridgeGroundVoid2x0,
+        HorizontalBridgeGroundVoid2x1,
+        HorizontalBridgeGroundVoid2x2,
+        HorizontalBridgeWaterGround0x0,
+        HorizontalBridgeWaterGround0x1,
+        HorizontalBridgeWaterGround0x2,
+        HorizontalBridgeWaterGround1x0,
+        HorizontalBridgeWaterGround1x1,
+        HorizontalBridgeWaterGround1x2,
+        HorizontalBridgeWaterGround2x0,
+        HorizontalBridgeWaterGround2x1,
+        HorizontalBridgeWaterGround2x2,
     }
 
     #[derive(Debug, Deserialize, Clone)]
@@ -61,8 +83,8 @@ mod serialization {
     pub struct DungeonTiles {
         pub tile_width: usize,
         pub tile_height: usize,
-        pub generic_tiles: HashMap<u8, Vec<SubRect>>,
-        pub bridge_tiles: Vec<Tile>
+        pub wang_4_corner_tiles: HashMap<u8, Vec<SubRect>>,
+        pub extra_tiles: Vec<Tile>
     }
 }
 use serialization::*;
@@ -96,7 +118,7 @@ fn draw_subrect(tex: Texture2D, subrect: &SubRect, x: f32, y: f32, scale: usize)
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Simple isometry example".to_owned(),
+        window_title: "Dungeon".to_owned(),
         fullscreen: false,
         window_width: 1280,
         window_height: 800,
@@ -151,9 +173,9 @@ impl DungeonTilemap {
         let dungeon_tiles: DungeonTiles = from_reader(&tiles_bytes[..]).unwrap();
 
         let mut tiles = Vec::new();
-        for (kind_code, subrects) in dungeon_tiles.generic_tiles.iter() {
+        for (kind_code, subrects) in dungeon_tiles.wang_4_corner_tiles.iter() {
             tiles.push(Tile {
-                kind: TileKind::Generic(*kind_code),
+                kind: TileKind::Wang4Corner(*kind_code),
                 subrects: subrects.clone(),
                 neighbours_east: Vec::new(),
                 neighbours_west: Vec::new(),
@@ -164,7 +186,7 @@ impl DungeonTilemap {
         // We need to be sure that zero tile is always a "void" tile, so we doing an extra sort step
         tiles.sort_by(|lhs, rhs| {
             match (lhs.kind, rhs.kind) {
-                (TileKind::Generic(kind_lhs), TileKind::Generic(kind_rhs)) => kind_lhs.cmp(&kind_rhs),
+                (TileKind::Wang4Corner(kind_lhs), TileKind::Wang4Corner(kind_rhs)) => kind_lhs.cmp(&kind_rhs),
                 _ => Ordering::Equal
             }
         });
@@ -175,7 +197,7 @@ impl DungeonTilemap {
                 let candidate_kind = tiles[j].kind;
                 let (matches_north, matches_south, matches_east, matches_west) = {
                     match (current_kind, candidate_kind) {
-                        (TileKind::Generic(current), TileKind::Generic(candidate)) => {
+                        (TileKind::Wang4Corner(current), TileKind::Wang4Corner(candidate)) => {
                             (
                                 get_north_east(current) == get_south_east(candidate) &&
                                     get_north_west(current) == get_south_west(candidate),
@@ -211,7 +233,7 @@ impl DungeonTilemap {
         //Add bridges:
         {
             let bridge_tiles_offset = tiles.len();
-            tiles.extend_from_slice(&dungeon_tiles.bridge_tiles[..]);
+            tiles.extend_from_slice(&dungeon_tiles.extra_tiles[..]);
 
             let mut bridge_match_queue_south = VecDeque::new();
             let mut bridge_match_queue_north = VecDeque::new();
@@ -220,10 +242,10 @@ impl DungeonTilemap {
 
             for bridge_tile in &tiles[bridge_tiles_offset..] {
                 for south_neighbour in bridge_tile.neighbours_south.iter() {
-                    if let TileKind::Generic(kind) = south_neighbour {
+                    if let TileKind::Wang4Corner(kind) = south_neighbour {
                         for i in 0..bridge_tiles_offset {
                             match tiles[i].kind {
-                                TileKind::Generic(kind_inner) if kind_inner == *kind => {
+                                TileKind::Wang4Corner(kind_inner) if kind_inner == *kind => {
                                     bridge_match_queue_south.push_back((bridge_tile.kind, i))
                                 },
                                 _ => ()
@@ -232,10 +254,10 @@ impl DungeonTilemap {
                     }
                 }
                 for north_neighbour in bridge_tile.neighbours_north.iter() {
-                    if let TileKind::Generic(kind) = north_neighbour {
+                    if let TileKind::Wang4Corner(kind) = north_neighbour {
                         for i in 0..bridge_tiles_offset {
                             match tiles[i].kind {
-                                TileKind::Generic(kind_inner) if kind_inner == *kind => {
+                                TileKind::Wang4Corner(kind_inner) if kind_inner == *kind => {
                                     bridge_match_queue_north.push_back((bridge_tile.kind, i))
                                 },
                                 _ => ()
@@ -244,10 +266,10 @@ impl DungeonTilemap {
                     }
                 }
                 for east_neighbour in bridge_tile.neighbours_east.iter() {
-                    if let TileKind::Generic(kind) = east_neighbour {
+                    if let TileKind::Wang4Corner(kind) = east_neighbour {
                         for i in 0..bridge_tiles_offset {
                             match tiles[i].kind {
-                                TileKind::Generic(kind_inner) if kind_inner == *kind => {
+                                TileKind::Wang4Corner(kind_inner) if kind_inner == *kind => {
                                     bridge_match_queue_east.push_back((bridge_tile.kind, i))
                                 },
                                 _ => ()
@@ -256,10 +278,10 @@ impl DungeonTilemap {
                     }
                 }
                 for west_neighbour in bridge_tile.neighbours_west.iter() {
-                    if let TileKind::Generic(kind) = west_neighbour {
+                    if let TileKind::Wang4Corner(kind) = west_neighbour {
                         for i in 0..bridge_tiles_offset {
                             match tiles[i].kind {
-                                TileKind::Generic(kind_inner) if kind_inner == *kind => {
+                                TileKind::Wang4Corner(kind_inner) if kind_inner == *kind => {
                                     bridge_match_queue_west.push_back((bridge_tile.kind, i))
                                 },
                                 _ => ()
@@ -366,7 +388,7 @@ impl Node for DungeonTilemap {
             quad_context: ctx, ..
         } = unsafe { get_internal_gl() };
 
-        const SCALE_UP: usize = 4;
+        const SCALE_UP: usize = 2;
         let start_x = screen_width() / ctx.dpi_scale();
         let start_x = (start_x - (node.w * node.tile_width * SCALE_UP) as f32) / 2.0;
 
@@ -388,7 +410,7 @@ impl Node for DungeonTilemap {
 #[macroquad::main(window_conf)]
 async fn main() {
     scene::add_node({
-        let mut tilemap = DungeonTilemap::new(24, 24).await;
+        let mut tilemap = DungeonTilemap::new(48, 48).await;
         tilemap.generate_new_map();
         tilemap
     });

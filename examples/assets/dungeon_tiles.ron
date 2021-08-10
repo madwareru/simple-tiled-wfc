@@ -7,9 +7,9 @@ DungeonTiles(
     // Second type of a corner is ground and it corresponds to 1.
     // Third type of a corner is water and it corresponds to 2.
     //
-    // Generic tiles are mapped as 0bsw_se_nw_ne where sw, se, nw and nw are pair of bits
+    // Wang4Corner tiles are mapped as 0bsw_se_nw_ne where sw, se, nw and nw are pair of bits
     // corresponding to south-west, south-east, north-west and north-east
-    generic_tiles: {
+    wang_4_corner_tiles: {
         // Completely void tile
         0b00_00_00_00: [
             SubRect(x: 0, y: 72, width: 2, height: 2)
@@ -207,15 +207,15 @@ DungeonTiles(
             SubRect(x: 88, y: 32, width: 8, height: 8)
         ],
     },
-    bridge_tiles: [
+    extra_tiles: [
         // VerticalBridgeGroundVoid
         Tile(
             kind: VerticalBridgeGroundVoid0x0,
             subrects: [SubRect(x: 56, y: 48, width: 8, height: 16)],
             neighbours_east: [VerticalBridgeGroundVoid0x1],
-            neighbours_west: [Generic(0b00_00_01_01), Generic(0b00_00_00_01)],
+            neighbours_west: [Wang4Corner(0b00_00_01_01), Wang4Corner(0b00_00_00_01)],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeGroundVoid1x0],
         ),
@@ -225,17 +225,17 @@ DungeonTiles(
             neighbours_east: [VerticalBridgeGroundVoid0x2],
             neighbours_west: [VerticalBridgeGroundVoid0x0],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeGroundVoid1x1],
         ),
         Tile(
             kind: VerticalBridgeGroundVoid0x2,
             subrects: [SubRect(x: 72, y: 48, width: 8, height: 16)],
-            neighbours_east: [Generic(0b00_00_01_01), Generic(0b00_00_01_00)],
+            neighbours_east: [Wang4Corner(0b00_00_01_01), Wang4Corner(0b00_00_01_00)],
             neighbours_west: [VerticalBridgeGroundVoid0x1],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeGroundVoid1x2],
         ),
@@ -244,10 +244,10 @@ DungeonTiles(
             subrects: [SubRect(x: 56, y: 72, width: 8, height: 8)],
             neighbours_east: [VerticalBridgeGroundVoid1x1],
             neighbours_west: [
-                Generic(0b01_00_01_00),
-                Generic(0b00_00_01_00),
-                Generic(0b00_00_01_00),
-                Generic(0b00_00_00_00)
+                Wang4Corner(0b01_00_01_00),
+                Wang4Corner(0b00_00_01_00),
+                Wang4Corner(0b00_00_01_00),
+                Wang4Corner(0b00_00_00_00)
             ],
             neighbours_north: [VerticalBridgeGroundVoid0x0],
             neighbours_south: [VerticalBridgeGroundVoid2x0],
@@ -264,10 +264,10 @@ DungeonTiles(
             kind: VerticalBridgeGroundVoid1x2,
             subrects: [SubRect(x: 72, y: 72, width: 8, height: 8)],
             neighbours_east: [
-                Generic(0b00_01_00_01),
-                Generic(0b00_00_00_01),
-                Generic(0b00_01_00_00),
-                Generic(0b00_00_00_00)
+                Wang4Corner(0b00_01_00_01),
+                Wang4Corner(0b00_00_00_01),
+                Wang4Corner(0b00_01_00_00),
+                Wang4Corner(0b00_00_00_00)
             ],
             neighbours_west: [VerticalBridgeGroundVoid1x1],
             neighbours_north: [VerticalBridgeGroundVoid0x2],
@@ -277,10 +277,10 @@ DungeonTiles(
             kind: VerticalBridgeGroundVoid2x0,
             subrects: [SubRect(x: 56, y: 80, width: 8, height: 8)],
             neighbours_east: [VerticalBridgeGroundVoid2x1],
-            neighbours_west: [Generic(0b01_01_00_00), Generic(0b00_01_00_00)],
+            neighbours_west: [Wang4Corner(0b01_01_00_00), Wang4Corner(0b00_01_00_00)],
             neighbours_north: [VerticalBridgeGroundVoid1x0],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
         Tile(
@@ -290,17 +290,17 @@ DungeonTiles(
             neighbours_west: [VerticalBridgeGroundVoid2x0],
             neighbours_north: [VerticalBridgeGroundVoid1x1],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
         Tile(
             kind: VerticalBridgeGroundVoid2x2,
             subrects: [SubRect(x: 72, y: 80, width: 8, height: 8)],
-            neighbours_east: [Generic(0b01_01_00_00), Generic(0b01_00_00_00)],
+            neighbours_east: [Wang4Corner(0b01_01_00_00), Wang4Corner(0b01_00_00_00)],
             neighbours_west: [VerticalBridgeGroundVoid2x1],
             neighbours_north: [VerticalBridgeGroundVoid1x2],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
 
@@ -309,9 +309,9 @@ DungeonTiles(
             kind: VerticalBridgeWaterGround0x0,
             subrects: [SubRect(x: 80, y: 48, width: 8, height: 8)],
             neighbours_east: [VerticalBridgeWaterGround0x1],
-            neighbours_west: [Generic(0b10_10_01_01), Generic(0b10_10_10_01)],
+            neighbours_west: [Wang4Corner(0b10_10_01_01), Wang4Corner(0b10_10_10_01)],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeWaterGround1x0],
         ),
@@ -321,17 +321,17 @@ DungeonTiles(
             neighbours_east: [VerticalBridgeWaterGround0x2],
             neighbours_west: [VerticalBridgeWaterGround0x0],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeWaterGround1x1],
         ),
         Tile(
             kind: VerticalBridgeWaterGround0x2,
             subrects: [SubRect(x: 96, y: 48, width: 8, height: 8)],
-            neighbours_east: [Generic(0b10_10_01_01), Generic(0b10_10_01_10)],
+            neighbours_east: [Wang4Corner(0b10_10_01_01), Wang4Corner(0b10_10_01_10)],
             neighbours_west: [VerticalBridgeWaterGround0x1],
             neighbours_north: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
             neighbours_south: [VerticalBridgeWaterGround1x2],
         ),
@@ -340,7 +340,7 @@ DungeonTiles(
             subrects: [SubRect(x: 80, y: 56, width: 8, height: 8)],
             neighbours_east: [VerticalBridgeWaterGround1x1],
             neighbours_west: [
-                Generic(0b10_10_10_10)
+                Wang4Corner(0b10_10_10_10)
             ],
             neighbours_north: [VerticalBridgeWaterGround0x0],
             neighbours_south: [VerticalBridgeWaterGround2x0],
@@ -357,7 +357,7 @@ DungeonTiles(
             kind: VerticalBridgeWaterGround1x2,
             subrects: [SubRect(x: 96, y: 56, width: 8, height: 8)],
             neighbours_east: [
-                Generic(0b10_10_10_10)
+                Wang4Corner(0b10_10_10_10)
             ],
             neighbours_west: [VerticalBridgeWaterGround1x1],
             neighbours_north: [VerticalBridgeWaterGround0x2],
@@ -367,10 +367,10 @@ DungeonTiles(
             kind: VerticalBridgeWaterGround2x0,
             subrects: [SubRect(x: 80, y: 64, width: 8, height: 8)],
             neighbours_east: [VerticalBridgeWaterGround2x1],
-            neighbours_west: [Generic(0b01_01_10_10), Generic(0b10_01_10_10)],
+            neighbours_west: [Wang4Corner(0b01_01_10_10), Wang4Corner(0b10_01_10_10)],
             neighbours_north: [VerticalBridgeWaterGround1x0],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
         Tile(
@@ -380,29 +380,207 @@ DungeonTiles(
             neighbours_west: [VerticalBridgeWaterGround2x0],
             neighbours_north: [VerticalBridgeWaterGround1x1],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
         Tile(
             kind: VerticalBridgeWaterGround2x2,
             subrects: [SubRect(x: 96, y: 64, width: 8, height: 8)],
-            neighbours_east: [Generic(0b01_01_10_10), Generic(0b01_10_10_10)],
+            neighbours_east: [Wang4Corner(0b01_01_10_10), Wang4Corner(0b01_10_10_10)],
             neighbours_west: [VerticalBridgeWaterGround2x1],
             neighbours_north: [VerticalBridgeWaterGround1x2],
             neighbours_south: [
-                Generic(0b01_01_01_01),
+                Wang4Corner(0b01_01_01_01),
             ],
         ),
 
-        // todo: HorizontalBridgeGroundVoid0x0
-        // todo: HorizontalBridgeGroundVoid0x1
-        // todo: HorizontalBridgeGroundVoid0x2
-        // todo: HorizontalBridgeGroundVoid1x0
-        // todo: HorizontalBridgeGroundVoid1x1
-        // todo: HorizontalBridgeGroundVoid1x2
-        // todo: HorizontalBridgeGroundVoid2x0
-        // todo: HorizontalBridgeGroundVoid2x1
-        // todo: HorizontalBridgeGroundVoid2x2
+        // HorizontalBridgeGroundVoid
+        Tile(
+            kind: HorizontalBridgeGroundVoid0x0,
+            subrects: [SubRect(x: 104, y: 0, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid0x1],
+            neighbours_west: [Wang4Corner(0b01_01_01_01)],
+            neighbours_north: [
+                Wang4Corner(0b01_00_01_00),
+                Wang4Corner(0b01_00_00_00)
+            ],
+            neighbours_south: [HorizontalBridgeGroundVoid1x0],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid0x1,
+            subrects: [SubRect(x: 112, y: 0, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid0x2],
+            neighbours_west: [HorizontalBridgeGroundVoid0x0],
+            neighbours_north: [
+                Wang4Corner(0b00_00_00_00),
+            ],
+            neighbours_south: [HorizontalBridgeGroundVoid1x1],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid0x2,
+            subrects: [SubRect(x: 120, y: 0, width: 8, height: 8)],
+            neighbours_east: [Wang4Corner(0b01_01_01_01)],
+            neighbours_west: [HorizontalBridgeGroundVoid0x1],
+            neighbours_north: [
+                Wang4Corner(0b00_01_00_01),
+                Wang4Corner(0b00_01_00_00)
+            ],
+            neighbours_south: [HorizontalBridgeGroundVoid1x2],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid1x0,
+            subrects: [SubRect(x: 104, y: 8, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid1x1],
+            neighbours_west: [
+                Wang4Corner(0b01_01_01_01)
+            ],
+            neighbours_north: [HorizontalBridgeGroundVoid0x0],
+            neighbours_south: [HorizontalBridgeGroundVoid2x0],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid1x1,
+            subrects: [SubRect(x: 112, y: 8, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid1x2],
+            neighbours_west: [HorizontalBridgeGroundVoid1x0],
+            neighbours_north: [HorizontalBridgeGroundVoid0x1],
+            neighbours_south: [HorizontalBridgeGroundVoid2x1],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid1x2,
+            subrects: [SubRect(x: 120, y: 8, width: 8, height: 8)],
+            neighbours_east: [
+                Wang4Corner(0b01_01_01_01)
+            ],
+            neighbours_west: [HorizontalBridgeGroundVoid1x1],
+            neighbours_north: [HorizontalBridgeGroundVoid0x2],
+            neighbours_south: [HorizontalBridgeGroundVoid2x2],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid2x0,
+            subrects: [SubRect(x: 104, y: 16, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid2x1],
+            neighbours_west: [Wang4Corner(0b01_01_01_01)],
+            neighbours_north: [HorizontalBridgeGroundVoid1x0],
+            neighbours_south: [
+                Wang4Corner(0b01_00_01_00),
+                Wang4Corner(0b00_00_01_00)
+            ],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid2x1,
+            subrects: [SubRect(x: 112, y: 16, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeGroundVoid2x2],
+            neighbours_west: [HorizontalBridgeGroundVoid2x0],
+            neighbours_north: [HorizontalBridgeGroundVoid1x1],
+            neighbours_south: [
+                Wang4Corner(0b00_00_00_00),
+            ],
+        ),
+        Tile(
+            kind: HorizontalBridgeGroundVoid2x2,
+            subrects: [SubRect(x: 120, y: 16, width: 8, height: 8)],
+            neighbours_east: [Wang4Corner(0b01_01_01_01)],
+            neighbours_west: [HorizontalBridgeGroundVoid2x1],
+            neighbours_north: [HorizontalBridgeGroundVoid1x2],
+            neighbours_south: [
+                Wang4Corner(0b00_01_00_01),
+                Wang4Corner(0b00_00_00_01)
+            ],
+        ),
+
+        // HorizontalBridgeWaterGround
+        Tile(
+            kind: HorizontalBridgeWaterGround0x0,
+            subrects: [SubRect(x: 104, y: 24, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround0x1],
+            neighbours_west: [Wang4Corner(0b01_01_01_01)],
+            neighbours_north: [
+                Wang4Corner(0b01_10_01_10),
+                Wang4Corner(0b01_10_10_10)
+            ],
+            neighbours_south: [HorizontalBridgeWaterGround1x0],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround0x1,
+            subrects: [SubRect(x: 112, y: 24, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround0x2],
+            neighbours_west: [HorizontalBridgeWaterGround0x0],
+            neighbours_north: [
+                Wang4Corner(0b10_10_10_10),
+            ],
+            neighbours_south: [HorizontalBridgeWaterGround1x1],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround0x2,
+            subrects: [SubRect(x: 120, y: 24, width: 8, height: 8)],
+            neighbours_east: [Wang4Corner(0b01_01_01_01)],
+            neighbours_west: [HorizontalBridgeWaterGround0x1],
+            neighbours_north: [
+                Wang4Corner(0b10_01_10_01),
+                Wang4Corner(0b10_01_10_10)
+            ],
+            neighbours_south: [HorizontalBridgeWaterGround1x2],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround1x0,
+            subrects: [SubRect(x: 104, y: 32, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround1x1],
+            neighbours_west: [
+                Wang4Corner(0b01_01_01_01)
+            ],
+            neighbours_north: [HorizontalBridgeWaterGround0x0],
+            neighbours_south: [HorizontalBridgeWaterGround2x0],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround1x1,
+            subrects: [SubRect(x: 112, y: 32, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround1x2],
+            neighbours_west: [HorizontalBridgeWaterGround1x0],
+            neighbours_north: [HorizontalBridgeWaterGround0x1],
+            neighbours_south: [HorizontalBridgeWaterGround2x1],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround1x2,
+            subrects: [SubRect(x: 120, y: 32, width: 8, height: 8)],
+            neighbours_east: [
+                Wang4Corner(0b01_01_01_01)
+            ],
+            neighbours_west: [HorizontalBridgeWaterGround1x1],
+            neighbours_north: [HorizontalBridgeWaterGround0x2],
+            neighbours_south: [HorizontalBridgeWaterGround2x2],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround2x0,
+            subrects: [SubRect(x: 104, y: 40, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround2x1],
+            neighbours_west: [Wang4Corner(0b01_01_01_01)],
+            neighbours_north: [HorizontalBridgeWaterGround1x0],
+            neighbours_south: [
+                Wang4Corner(0b01_10_01_10),
+                Wang4Corner(0b10_10_01_10)
+            ],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround2x1,
+            subrects: [SubRect(x: 112, y: 40, width: 8, height: 8)],
+            neighbours_east: [HorizontalBridgeWaterGround2x2],
+            neighbours_west: [HorizontalBridgeWaterGround2x0],
+            neighbours_north: [HorizontalBridgeWaterGround1x1],
+            neighbours_south: [
+                Wang4Corner(0b10_10_10_10),
+            ],
+        ),
+        Tile(
+            kind: HorizontalBridgeWaterGround2x2,
+            subrects: [SubRect(x: 120, y: 40, width: 8, height: 8)],
+            neighbours_east: [Wang4Corner(0b01_01_01_01)],
+            neighbours_west: [HorizontalBridgeWaterGround2x1],
+            neighbours_north: [HorizontalBridgeWaterGround1x2],
+            neighbours_south: [
+                Wang4Corner(0b10_01_10_01),
+                Wang4Corner(0b10_10_10_01)
+            ],
+        ),
 
         // todo: HorizontalBridgeWaterGround0x0
         // todo: HorizontalBridgeWaterGround0x1
