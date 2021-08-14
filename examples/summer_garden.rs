@@ -545,9 +545,7 @@ impl WangTilemap {
         let mut y = start_y + 4.0 * node.draw_scale;
         let dy = node.tile_height as f32 * node.draw_scale;
 
-        let mut idx = 0;
-
-        for _ in 0..node.h {
+        for idx in (0..node.h*node.w).step_by(node.w) {
             for i in 0..node.w {
                 let corner_tree = node.corner_tree_data[idx + i];
                 let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
@@ -571,8 +569,6 @@ impl WangTilemap {
                     );
                 }
             }
-
-            idx += node.w;
             y += dy;
         }
     }
