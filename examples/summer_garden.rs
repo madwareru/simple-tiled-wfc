@@ -3,7 +3,7 @@ use {
     macroquad::prelude::{scene::{Node, RefMut}, *},
     macroquad::miniquad::{TextureParams, TextureFormat, TextureWrap},
     ron::de::from_reader,
-    std::{ sync::mpsc::channel }
+    std::{sync::mpsc::channel},
 };
 
 mod serialization {
@@ -15,7 +15,7 @@ mod serialization {
         Land,
         GrassSharp,
         GrassRound,
-        Water
+        Water,
     }
 
     #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Deserialize)]
@@ -23,19 +23,19 @@ mod serialization {
         None,
         Pine,
         Oak,
-        Bush
+        Bush,
     }
 
     #[derive(Copy, Clone, PartialEq, Debug, Deserialize)]
     pub enum TileKind {
         Inner,
-        Outer
+        Outer,
     }
 
     #[derive(Copy, Clone, PartialEq, Debug, Deserialize)]
     pub enum NeighbourKind {
         WangCorners,
-        RelOffset(i32)
+        RelOffset(i32),
     }
 
     #[derive(Copy, Clone, Debug, Deserialize)]
@@ -75,7 +75,7 @@ mod serialization {
         pub x: i32,
         pub y: i32,
         pub width: i32,
-        pub height: i32
+        pub height: i32,
     }
 
     #[derive(Clone, Deserialize)]
@@ -99,10 +99,12 @@ mod serialization {
         pub neighbour_strategy_2_x_2: Vec<NeighbourChooseStrategy>,
         pub neighbour_strategy_3_x_3: Vec<NeighbourChooseStrategy>,
 
-        pub terrain_tile_configs: Vec<TerrainTilesConfig>
+        pub terrain_tile_configs: Vec<TerrainTilesConfig>,
     }
 }
+
 use serialization::*;
+use std::collections::HashMap;
 
 //noinspection DuplicatedCode
 fn draw_subrect(tex: Texture2D, subrect: &SubRect, x: f32, y: f32, scale: f32) {
@@ -116,7 +118,7 @@ fn draw_subrect(tex: Texture2D, subrect: &SubRect, x: f32, y: f32, scale: f32) {
         DrawTextureParams {
             source: Some(Rect::new(
                 subrect.x as f32, subrect.y as f32,
-                subrect.width as f32, subrect.height as f32
+                subrect.width as f32, subrect.height as f32,
             )),
             dest_size: Some([
                 subrect.width as f32 * ctx.dpi_scale() * scale,
@@ -133,13 +135,13 @@ fn draw_subrect_pivoted(tex: Texture2D, subrect: &SubRect, x: f32, y: f32, scale
     } = unsafe { get_internal_gl() };
     draw_texture_ex(
         tex,
-        (x - subrect.width as f32 / (2.0 / scale)) * ctx.dpi_scale(),
+        (x - subrect.width as f32 * scale / 2.0) * ctx.dpi_scale(),
         (y - subrect.height as f32 * scale) * ctx.dpi_scale(),
         WHITE,
         DrawTextureParams {
             source: Some(Rect::new(
                 subrect.x as f32, subrect.y as f32,
-                subrect.width as f32, subrect.height as f32
+                subrect.width as f32, subrect.height as f32,
             )),
             dest_size: Some([
                 subrect.width as f32 * ctx.dpi_scale() * scale,
@@ -175,7 +177,8 @@ struct WangTilemap {
     texture: Texture2D,
     map_data: Vec<usize>,
     corner_tree_data: Vec<TreeType>,
-    cell_tree_data: Vec<TreeType>
+    cell_tree_data: Vec<TreeType>,
+    pub tree_probabilities: HashMap<TreeType, i32>,
 }
 
 impl WangTilemap {
@@ -202,8 +205,8 @@ impl WangTilemap {
                     wrap: TextureWrap::Clamp,
                     filter: FilterMode::Nearest,
                     width: img_w,
-                    height: img_h
-                }
+                    height: img_h,
+                },
             )
         );
 
@@ -246,7 +249,7 @@ impl WangTilemap {
                                     south_east: match pattern.south_east {
                                         TileKind::Inner => { tile_cfg.inner_type }
                                         TileKind::Outer => { tile_cfg.outer_type }
-                                    }
+                                    },
                                 }
                             }
                         )
@@ -254,38 +257,26 @@ impl WangTilemap {
                 }
                 for j in 0..4 {
                     for i in 0..4 {
-                        tiles.push(SubRect{
+                        tiles.push(SubRect {
                             x: i * 32 + tile_cfg.x_offset,
                             y: j * 32 + tile_cfg.y_offset,
                             width: 32,
-                            height: 32
+                            height: 32,
                         })
                     }
                 }
-                for jj in 0..2 {
-                    for ii in 0..2 {
-                        for j in 0..2 {
-                            for i in 0..2 {
-                                tiles.push(SubRect{
-                                    x: (i + ii * 2) * 32 + tile_cfg.x_offset + 256,
-                                    y: (j + jj * 2) * 32 + tile_cfg.y_offset,
-                                    width: 32,
-                                    height: 32
-                                })
-                            }
-                        }
-                    }
-                }
-                for jj in 0..2 {
-                    for ii in 0..2 {
-                        for j in 0..2 {
-                            for i in 0..2 {
-                                tiles.push(SubRect{
-                                    x: (i + ii * 2) * 32 + tile_cfg.x_offset,
-                                    y: (j + jj * 2) * 32 + tile_cfg.y_offset + 256,
-                                    width: 32,
-                                    height: 32
-                                })
+                for offsets in &[(256, 0), (0, 256)] {
+                    for jj in 0..2 {
+                        for ii in 0..2 {
+                            for j in 0..2 {
+                                for i in 0..2 {
+                                    tiles.push(SubRect {
+                                        x: (i + ii * 2) * 32 + tile_cfg.x_offset + offsets.0,
+                                        y: (j + jj * 2) * 32 + tile_cfg.y_offset + offsets.1,
+                                        width: 32,
+                                        height: 32,
+                                    })
+                                }
                             }
                         }
                     }
@@ -299,21 +290,21 @@ impl WangTilemap {
             tile_sides.extend_from_slice(&atlas.horizontal_bridge_sides[..]);
             for j in 0..3 {
                 for i in 0..3 {
-                    tiles.push(SubRect{
+                    tiles.push(SubRect {
                         x: i * 32 + 256,
                         y: j * 32 + 256,
                         width: 32,
-                        height: 32
+                        height: 32,
                     })
                 }
             }
             for j in 0..3 {
                 for i in 0..3 {
-                    tiles.push(SubRect{
+                    tiles.push(SubRect {
                         x: i * 32 + 256 + 96,
                         y: j * 32 + 256,
                         width: 32,
-                        height: 32
+                        height: 32,
                     })
                 }
             }
@@ -408,9 +399,16 @@ impl WangTilemap {
             tiles,
             modules,
             texture,
-            map_data: vec![0; w*h],
-            cell_tree_data: vec![TreeType::None; w*h],
-            corner_tree_data: vec![TreeType::None; (w+1)*(h+1)]
+            map_data: vec![0; w * h],
+            cell_tree_data: vec![TreeType::None; w * h],
+            corner_tree_data: vec![TreeType::None; (w + 1) * (h + 1)],
+            tree_probabilities: {
+                let mut map = HashMap::new();
+                map.insert(TreeType::Bush, 4);
+                map.insert(TreeType::Oak, 12);
+                map.insert(TreeType::Pine, 16);
+                map
+            },
         }
     }
 
@@ -430,7 +428,7 @@ impl WangTilemap {
         self.map_data.clear();
         self.map_data.extend_from_slice(&results[..]);
 
-        self.plant_trees()
+        self.plant_trees();
     }
 
     fn plant_trees(&mut self) {
@@ -443,44 +441,47 @@ impl WangTilemap {
                 if !(self.map_data[idx] >= 48 && self.map_data[idx] < 96) {
                     continue;
                 }
-
-                let lop_left_corner_idx = j * (self.w + 1) + i;
-
                 self.try_plant_cell_tree(idx);
-
-                self.try_plant_corner_tree(lop_left_corner_idx);
-
-                if j == self.h - 2 {
-                    self.try_plant_corner_tree(lop_left_corner_idx + self.w + 1);
-                }
-                if i == self.w - 2 && j == self.h - 2 {
-                    self.try_plant_corner_tree(lop_left_corner_idx + self.w + 2);
-                }
-                if i == self.w - 2 {
-                    self.try_plant_corner_tree(lop_left_corner_idx + 1);
-                }
+                self.try_plant_corner_tree(j * (self.w + 1) + i);
             }
         }
     }
 
-    fn try_plant_corner_tree(&mut self, idx: usize) {
-        if rand::gen_range(0, 100) < 4 {
-            self.corner_tree_data[idx] = TreeType::Bush;
-        } else if rand::gen_range(0, 100) < 12 {
-            self.corner_tree_data[idx] = TreeType::Oak;
-        } else if rand::gen_range(0, 100) < 18 {
-            self.corner_tree_data[idx] = TreeType::Pine;
-        }
+    fn try_plant(&mut self) -> TreeType {
+        self.tree_probabilities.get(&TreeType::Bush)
+            .and_then(
+                |&probability| if probability >= rand::gen_range(0, 100) {
+                    Some(TreeType::Bush)
+                } else {
+                    None
+                }
+            ).unwrap_or_else(|| {
+            self.tree_probabilities.get(&TreeType::Oak)
+                .and_then(
+                    |&probability| if probability >= rand::gen_range(0, 100) {
+                        Some(TreeType::Oak)
+                    } else {
+                        None
+                    }
+                ).unwrap_or_else(|| {
+                self.tree_probabilities.get(&TreeType::Pine)
+                    .and_then(
+                        |&probability| if probability >= rand::gen_range(0, 100) {
+                            Some(TreeType::Pine)
+                        } else {
+                            None
+                        }
+                    ).unwrap_or(TreeType::None)
+            })
+        })
     }
 
     fn try_plant_cell_tree(&mut self, idx: usize) {
-        if rand::gen_range(0, 100) < 4 {
-            self.cell_tree_data[idx] = TreeType::Bush;
-        } else if rand::gen_range(0, 100) < 12 {
-            self.cell_tree_data[idx] = TreeType::Oak;
-        } else if rand::gen_range(0, 100) < 18 {
-            self.cell_tree_data[idx] = TreeType::Pine;
-        }
+        self.cell_tree_data[idx] = self.try_plant();
+    }
+
+    fn try_plant_corner_tree(&mut self, idx: usize) {
+        self.corner_tree_data[idx] = self.try_plant();
     }
 }
 
@@ -502,40 +503,11 @@ impl Node for WangTilemap {
         let start_y = screen_height() / ctx.dpi_scale();
         let start_y = (start_y - (node.h * node.tile_height) as f32 * node.draw_scale) / 2.0;
 
-        for j in 0..node.h {
-            for i in 0..node.w {
-                let idx = node.w * j + i;
-                let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
-                let y = start_y + (node.tile_height * j) as f32 * node.draw_scale;
-                let idx = node.map_data[idx];
-                draw_subrect(node.texture, &(node.tiles[idx]), x, y, node.draw_scale);
-            }
-        }
-        for j in 0..node.h+1 {
-            for i in 0..node.w+1 {
-                let idx = (node.w + 1) * j + i;
-                let x = start_x + (node.tile_width * i - 16) as f32 * node.draw_scale;
-                let y = start_y + (node.tile_height * j - 12) as f32 * node.draw_scale;
-                let cell_tree = node.corner_tree_data[idx];
-                if let Some(subrect) = node.atlas.tree_sub_rects.get(&cell_tree) {
-                    draw_subrect_pivoted(node.texture, subrect, x, y, node.draw_scale)
-                }
-            }
-
-            if j < node.h {
-                for i in 0..node.w {
-                    let idx = node.w * j + i;
-                    let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
-                    let y = start_y + (node.tile_height * j + 4) as f32 * node.draw_scale;
-                    let cell_tree = node.cell_tree_data[idx];
-                    if let Some(subrect) = node.atlas.tree_sub_rects.get(&cell_tree) {
-                        draw_subrect_pivoted(node.texture, subrect, x, y, node.draw_scale)
-                    }
-                }
-            }
-        }
+        WangTilemap::draw_tiles(&node, start_x, start_y);
+        WangTilemap::draw_trees(&node, start_x, start_y)
     }
 }
+
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -550,5 +522,62 @@ async fn main() {
         }
         clear_background(Color::new(0.12, 0.1, 0.15, 1.00));
         next_frame().await;
+    }
+}
+
+impl WangTilemap {
+    fn draw_tiles(node: &RefMut<WangTilemap>, start_x: f32, start_y: f32) {
+        let mut y = start_y;
+        for j in 0..node.h {
+            for i in 0..node.w {
+                let idx = node.w * j + i;
+                let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
+                let idx = node.map_data[idx];
+                draw_subrect(node.texture, &(node.tiles[idx]), x, y, node.draw_scale);
+            }
+            y += node.tile_height as f32 * node.draw_scale;
+        }
+    }
+}
+
+impl WangTilemap {
+    fn draw_trees(node: &RefMut<WangTilemap>, start_x: f32, start_y: f32) {
+        let mut y = start_y + 4.0 * node.draw_scale;
+        let dy = node.tile_height as f32 * node.draw_scale;
+
+        let mut idx_corner = 0;
+        let mut idx_cell = 0;
+
+        for j in 0..=node.h {
+            for i in 0..=node.w {
+                let corner_tree = node.corner_tree_data[idx_corner + i];
+                let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
+                if let Some(subrect) = node.atlas.tree_sub_rects.get(&corner_tree) {
+                    draw_subrect_pivoted(node.texture, subrect, x, y, node.draw_scale);
+                }
+            }
+            idx_corner += node.w + 1;
+
+            // Trees are drawn row by row, so we need two loops, first we do a loop by corners,
+            // and second time we are looping around cells. Since corners have +1 on both sides,
+            // we need to check boundaries for j, as well as iterate i from 0 to width exclusively,
+            // unlike for corners, where we are iterating inclusively
+            if j < node.h {
+                for i in 0..node.w {
+                    let cell_tree = node.cell_tree_data[idx_cell + i];
+                    let x = start_x + (node.tile_width * i + 16) as f32 * node.draw_scale;
+                    if let Some(subrect) = node.atlas.tree_sub_rects.get(&cell_tree) {
+                        draw_subrect_pivoted(
+                            node.texture, subrect,
+                            x,
+                            y + 16.0 * node.draw_scale,
+                            node.draw_scale,
+                        );
+                    }
+                }
+                idx_cell += node.w;
+            }
+            y += dy;
+        }
     }
 }
