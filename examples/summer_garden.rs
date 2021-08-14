@@ -401,7 +401,7 @@ impl WangTilemap {
             texture,
             map_data: vec![0; w * h],
             cell_tree_data: vec![TreeType::None; w * h],
-            corner_tree_data: vec![TreeType::None; (w + 1) * (h + 1)],
+            corner_tree_data: vec![TreeType::None; w * h],
             tree_probabilities: {
                 let mut map = HashMap::new();
                 map.insert(TreeType::Bush, 4);
@@ -442,7 +442,7 @@ impl WangTilemap {
                     continue;
                 }
                 self.try_plant_cell_tree(idx);
-                self.try_plant_corner_tree(j * (self.w + 1) + i);
+                self.try_plant_corner_tree(idx);
             }
         }
     }
@@ -545,38 +545,34 @@ impl WangTilemap {
         let mut y = start_y + 4.0 * node.draw_scale;
         let dy = node.tile_height as f32 * node.draw_scale;
 
-        let mut idx_corner = 0;
-        let mut idx_cell = 0;
+        let mut idx = 0;
 
-        for j in 0..=node.h {
-            for i in 0..=node.w {
-                let corner_tree = node.corner_tree_data[idx_corner + i];
+        for _ in 0..node.h {
+            for i in 0..node.w {
+                let corner_tree = node.corner_tree_data[idx + i];
                 let x = start_x + (node.tile_width * i) as f32 * node.draw_scale;
                 if let Some(subrect) = node.atlas.tree_sub_rects.get(&corner_tree) {
                     draw_subrect_pivoted(node.texture, subrect, x, y, node.draw_scale);
                 }
             }
-            idx_corner += node.w + 1;
 
             // Trees are drawn row by row, so we need two loops, first we do a loop by corners,
-            // and second time we are looping around cells. Since corners have +1 on both sides,
-            // we need to check boundaries for j, as well as iterate i from 0 to width exclusively,
-            // unlike for corners, where we are iterating inclusively
-            if j < node.h {
-                for i in 0..node.w {
-                    let cell_tree = node.cell_tree_data[idx_cell + i];
-                    let x = start_x + (node.tile_width * i + 16) as f32 * node.draw_scale;
-                    if let Some(subrect) = node.atlas.tree_sub_rects.get(&cell_tree) {
-                        draw_subrect_pivoted(
-                            node.texture, subrect,
-                            x,
-                            y + 16.0 * node.draw_scale,
-                            node.draw_scale,
-                        );
-                    }
+            // and second time we are looping around cells.
+
+            for i in 0..node.w {
+                let cell_tree = node.cell_tree_data[idx + i];
+                let x = start_x + (node.tile_width * i + 16) as f32 * node.draw_scale;
+                if let Some(subrect) = node.atlas.tree_sub_rects.get(&cell_tree) {
+                    draw_subrect_pivoted(
+                        node.texture, subrect,
+                        x,
+                        y + 16.0 * node.draw_scale,
+                        node.draw_scale,
+                    );
                 }
-                idx_cell += node.w;
             }
+
+            idx += node.w;
             y += dy;
         }
     }
