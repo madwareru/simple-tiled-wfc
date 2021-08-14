@@ -1,4 +1,3 @@
-// An example which shows that exhaustive tile sets aren't so much desired by WFC
 use {
     simple_tiled_wfc::grid_generation::{WfcModule, WfcContext, WfcContextBuilder},
     macroquad::prelude::{scene::{Node, RefMut}, *},
