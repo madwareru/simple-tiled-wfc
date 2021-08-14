@@ -71,7 +71,7 @@ impl WangTilemap {
             quad_context: ctx, ..
         } = unsafe { get_internal_gl() };
 
-        let texture_bytes = load_file("assets/wang-4-corner.png").await.unwrap();
+        let texture_bytes = load_file("assets/wang_4_corner.png").await.unwrap();
 
         let img = image::load_from_memory(&texture_bytes[..])
             .unwrap_or_else(|e| panic!("{}", e))
